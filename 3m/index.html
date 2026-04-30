@@ -485,12 +485,7 @@ const CONFIG_FALLBACK = {
 let CONFIG = null;
 
 async function init() {
-  try {
-    const r = await fetch("/anafora/config.json");
-    CONFIG = await r.json();
-  } catch(e) {
-    CONFIG = CONFIG_FALLBACK;
-  }
+  CONFIG = CONFIG_FALLBACK;
   document.getElementById("koin-label").textContent = KOINOTITA;
   document.getElementById("date-sel").value = new Date().toISOString().slice(0,10);
   loadDay();
