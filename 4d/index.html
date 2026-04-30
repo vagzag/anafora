@@ -117,7 +117,6 @@ async function syncToBackend() {
   const imerominia = document.getElementById("date-sel").value;
   if (!imerominia || !state.vagonia) return;
 
-  // Convert kiniseis keys to English for Apps Script
   const vagonia = {};
   Object.entries(state.vagonia).forEach(([v, d]) => {
     vagonia[v] = {
@@ -132,18 +131,37 @@ async function syncToBackend() {
     };
   });
 
-  const payload = { koinotita: KOINOTITA, imerominia, vagonia };
+  const payload = JSON.stringify({ koinotita: KOINOTITA, imerominia, vagonia });
 
-  try {
-    await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-  } catch(e) {
-    console.error("Sync failed:", e);
-  }
+  // Use hidden iframe + form to avoid CORS
+  return new Promise((resolve) => {
+    const iframeId = "sync-iframe";
+    let iframe = document.getElementById(iframeId);
+    if (!iframe) {
+      iframe = document.createElement("iframe");
+      iframe.id = iframeId;
+      iframe.name = iframeId;
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+    }
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = APPS_SCRIPT_URL;
+    form.target = iframeId;
+
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "payload";
+    input.value = payload;
+    form.appendChild(input);
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+
+    setTimeout(resolve, 1000);
+  });
 }
 
 async function loadFromBackend() { return false; }
