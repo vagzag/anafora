@@ -24,8 +24,7 @@
   .koin-badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--accent-bg);color:var(--accent);}
   .save-pill{font-size:11px;font-weight:500;padding:3px 10px;border-radius:99px;background:var(--accent-bg);color:var(--accent);opacity:0;transition:opacity 0.3s;margin-left:8px;}
   .save-pill.show{opacity:1;}
-  .date-row{display:flex;align-items:center;gap:8px;}
-  .date-row input[type=date]{flex:1;font-family:var(--font);font-size:14px;font-weight:500;color:var(--text);background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--rs);padding:7px 10px;outline:none;-webkit-appearance:none;}
+  .date-row input[type=date]{width:100%;font-family:var(--font);font-size:14px;font-weight:500;color:var(--text);background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--rs);padding:7px 10px;outline:none;-webkit-appearance:none;}
 
   .summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0.875rem 1rem;}
   .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:0.625rem 0.5rem;text-align:center;}
@@ -61,18 +60,19 @@
 
   /* NEW ENTRY AREA */
   .new-area{background:var(--bg);border-radius:var(--rs);padding:10px;margin-bottom:10px;border:1px solid var(--border);}
-  .new-inputs{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
-  .new-inputs input[type=text]{flex:1;font-family:var(--font);font-size:14px;color:var(--text);background:var(--surface);border:1.5px solid var(--border-strong);border-radius:var(--rs);padding:8px 10px;outline:none;}
-  .new-inputs input[type=text]:focus{border-color:var(--accent);}
-  .new-inputs input[type=text]::placeholder{color:var(--hint);}
-  .new-inputs select{font-family:var(--font);font-size:13px;color:var(--text);background:var(--surface);border:1.5px solid var(--border-strong);border-radius:var(--rs);padding:8px 22px 8px 8px;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237A786E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;width:76px;}
+  .new-name-row{display:flex;gap:6px;margin-bottom:6px;}
+  .new-name-row input[type=text]{flex:1;font-family:var(--font);font-size:14px;color:var(--text);background:var(--surface);border:1.5px solid var(--border-strong);border-radius:var(--rs);padding:8px 10px;outline:none;}
+  .new-name-row input[type=text]:focus{border-color:var(--accent);}
+  .new-name-row input[type=text]::placeholder{color:var(--hint);}
+  .new-vag-row{display:flex;gap:6px;margin-bottom:8px;align-items:center;}
+  .new-vag-row select{font-family:var(--font);font-size:13px;color:var(--text);background:var(--surface);border:1.5px solid var(--border-strong);border-radius:var(--rs);padding:8px 22px 8px 8px;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237A786E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;flex:1;}
   .new-arr{color:var(--hint);font-size:13px;flex:0 0 auto;}
   .err-msg{font-size:12px;color:var(--danger);margin-bottom:6px;display:none;font-weight:500;}
   .err-msg.show{display:block;}
   .confirm-btn{font-family:var(--font);font-size:14px;font-weight:600;color:#fff;background:var(--accent);border:none;border-radius:var(--rs);padding:10px;cursor:pointer;width:100%;text-align:center;}
   .confirm-btn:active{opacity:0.85;}
 
-  /* LIST OF EXISTING */
+  /* LIST */
   .list-label{font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--hint);margin-bottom:6px;display:none;}
   .list-label.show{display:block;}
   .krows{display:flex;flex-direction:column;gap:5px;}
@@ -84,6 +84,7 @@
   .krow .karr{font-size:12px;color:var(--hint);flex:0 0 auto;}
   .krow .del{font-size:18px;line-height:1;color:var(--hint);background:none;border:none;cursor:pointer;padding:0 2px;flex:0 0 auto;}
   .krow .del:active{color:var(--danger);}
+  .krow-names{display:flex;flex-direction:column;gap:3px;flex:1;}
 </style>
 </head>
 <body>
@@ -96,7 +97,7 @@
     </div>
   </div>
   <div class="date-row">
-    <input type="date" id="date-sel" onchange="onDateChange()">
+    <input type="date" id="date-sel" onchange="loadDay()">
   </div>
 </div>
 
@@ -113,219 +114,220 @@
 const KOINOTITA = "4Δ";
 const APPS_SCRIPT_URL = "PENDING";
 
-async function syncToBackend() {
-  const imerominia = document.getElementById("date-sel").value;
-  if (!imerominia || !state.vagonia) return;
+const CONFIG = {
+  "3Δ": [331,332,333,334,335,336,341,342,343,344,345,346,350,215],
+  "3Μ": [311,312,313,314,315,316,321,322,323,324,325,326,212,214],
+  "4Δ": [441,442,443,444,445,446,431,432,433,434,435,436,450,225],
+  "4Μ": [411,412,413,414,415,416,421,422,423,424,425,426,224],
+  "5αρια": [511,512,513,514,515,521,522,523,524,525],
+  "6αρια": [531,532,533,534,535,536,537,538,539]
+};
 
-  const vagonia = {};
-  Object.entries(state.vagonia).forEach(([v, d]) => {
-    vagonia[v] = {
-      simera: d.simera !== "" ? parseInt(d.simera) : null,
-      xthes: d.xthes !== "" ? parseInt(d.xthes) : null,
-      kiniseis: {
-        afikseis: d.kiniseis["Αφίξεις"] || [],
-        apoxwriseis: d.kiniseis["Αποχωρήσεις"] || [],
-        adeies: d.kiniseis["Άδειες"] || [],
-        metafores: d.kiniseis["Μεταφορές"] || []
+const CATS = ["Αφίξεις","Αποχωρήσεις","Άδειες","Μεταφορές"];
+let state={}, openVagoni=null, activeTabs={}, saveTimer=null;
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function stateKey(){ return "campF_"+KOINOTITA+"|"+document.getElementById("date-sel").value; }
+function prevKey(){
+  const d=new Date(document.getElementById("date-sel").value);
+  d.setDate(d.getDate()-1);
+  return "campF_"+KOINOTITA+"|"+d.toISOString().slice(0,10);
+}
+
+function loadDay(){
+  const vagonia = CONFIG[KOINOTITA]||[];
+  openVagoni=null;
+  vagonia.forEach(v=>{ if(!activeTabs[v]) activeTabs[v]="Αφίξεις"; });
+  const saved=localStorage.getItem(stateKey());
+  if(saved){
+    state=JSON.parse(saved);
+  } else {
+    const prev=JSON.parse(localStorage.getItem(prevKey())||"null");
+    state={vagonia:{}};
+    vagonia.forEach(v=>{
+      state.vagonia[v]={
+        simera:"", xthes:prev?.vagonia?.[v]?.simera??"",
+        kiniseis:{"Αφίξεις":[],"Αποχωρήσεις":[],"Άδειες":[],"Μεταφορές":[]}
+      };
+    });
+  }
+  vagonia.forEach(v=>{
+    if(!state.vagonia[v]) state.vagonia[v]={simera:"",xthes:"",kiniseis:{}};
+    CATS.forEach(c=>{if(!state.vagonia[v].kiniseis[c]) state.vagonia[v].kiniseis[c]=[];});
+  });
+  renderAll(); updateSummary();
+}
+
+function autoSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    localStorage.setItem(stateKey(),JSON.stringify(state));
+    await syncToBackend();
+    const pill=document.getElementById("save-pill");
+    pill.classList.add("show");
+    setTimeout(()=>pill.classList.remove("show"),1800);
+  },800);
+}
+
+async function syncToBackend(){
+  if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL==="PENDING") return;
+  const imerominia=document.getElementById("date-sel").value;
+  if(!imerominia||!state.vagonia) return;
+  const vagonia={};
+  Object.entries(state.vagonia).forEach(([v,d])=>{
+    vagonia[v]={
+      simera:d.simera!==""?parseInt(d.simera):null,
+      xthes:d.xthes!==""?parseInt(d.xthes):null,
+      kiniseis:{
+        afikseis:d.kiniseis["Αφίξεις"]||[],
+        apoxwriseis:d.kiniseis["Αποχωρήσεις"]||[],
+        adeies:d.kiniseis["Άδειες"]||[],
+        metafores:d.kiniseis["Μεταφορές"]||[]
       }
     };
   });
-
-  const payload = JSON.stringify({ koinotita: KOINOTITA, imerominia, vagonia });
-
-  // Use hidden iframe + form to avoid CORS
-  return new Promise((resolve) => {
-    const iframeId = "sync-iframe";
-    let iframe = document.getElementById(iframeId);
-    if (!iframe) {
-      iframe = document.createElement("iframe");
-      iframe.id = iframeId;
-      iframe.name = iframeId;
-      iframe.style.display = "none";
+  const payload=JSON.stringify({koinotita:KOINOTITA,imerominia,vagonia});
+  return new Promise(resolve=>{
+    let iframe=document.getElementById("sync-iframe");
+    if(!iframe){
+      iframe=document.createElement("iframe");
+      iframe.id="sync-iframe"; iframe.name="sync-iframe";
+      iframe.style.display="none";
       document.body.appendChild(iframe);
     }
-
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = APPS_SCRIPT_URL;
-    form.target = iframeId;
-
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = "payload";
-    input.value = payload;
-    form.appendChild(input);
-
+    const form=document.createElement("form");
+    form.method="POST"; form.action=APPS_SCRIPT_URL; form.target="sync-iframe";
+    const inp=document.createElement("input");
+    inp.type="hidden"; inp.name="payload"; inp.value=payload;
+    form.appendChild(inp);
     document.body.appendChild(form);
     form.submit();
     document.body.removeChild(form);
-
-    setTimeout(resolve, 1000);
+    setTimeout(resolve,1000);
   });
 }
 
-async function loadFromBackend() { return false; }
-async function loadPrevFromBackend() { return {}; }
-
-async function loadDay() {
-  const vagonia = CONFIG[KOINOTITA] || [];
-  openVagoni = null;
-  vagonia.forEach(v => { if (!activeTabs[v]) activeTabs[v] = "Αφίξεις"; });
-
-  // Try Supabase first
-  const loaded = await loadFromBackend();
-
-  if (!loaded) {
-    // fallback to localStorage
-    const saved = localStorage.getItem(stateKey());
-    if (saved) {
-      state = JSON.parse(saved);
-    } else {
-      // load prev day from Supabase for xthes
-      const prevData = await loadPrevFromBackend();
-      state = { vagonia: {} };
-      vagonia.forEach(v => {
-        state.vagonia[v] = {
-          simera: "",
-          xthes: prevData[v] !== undefined ? String(prevData[v]) : "",
-          kiniseis: {"Αφίξεις":[],"Αποχωρήσεις":[],"Άδειες":[],"Μεταφορές":[]}
-        };
-      });
-    }
-  }
-
-  // ensure all wagons present
-  vagonia.forEach(v => {
-    if (!state.vagonia[v]) state.vagonia[v] = { simera:"", xthes:"", kiniseis:{} };
-    CATS.forEach(c => { if (!state.vagonia[v].kiniseis[c]) state.vagonia[v].kiniseis[c] = []; });
-  });
-
-  renderAll();
-  updateSummary();
-}
-
-function onDateChange() { loadDay(); }
-
-function autoSave() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    localStorage.setItem(stateKey(), JSON.stringify(state));
-    await syncToBackend();
-    const pill = document.getElementById("save-pill");
-    pill.classList.add("show");
-    setTimeout(() => pill.classList.remove("show"), 1800);
-  }, 800);
-}
-
-function renderAll() {
-  const vagonia = CONFIG[KOINOTITA] || [];
-  const cont = document.getElementById("vagonia-container");
-  cont.innerHTML = "";
-  vagonia.forEach(v => cont.appendChild(makeCard(v)));
-}
-
-function allVagoniaOpts() {
-  return Object.entries(CONFIG).map(([name, vags]) => {
-    const label = name === KOINOTITA ? name + " (τρέχουσα)" : name;
+function allVagoniaOpts(){
+  return Object.entries(CONFIG).map(([name,vags])=>{
+    const label=name===KOINOTITA?name+" (τρέχουσα)":name;
     return `<optgroup label="${label}">${vags.map(v=>`<option value="${v}">${v}</option>`).join("")}</optgroup>`;
   }).join("");
 }
-
-function ownOpts(defaultV) {
-  return (CONFIG[KOINOTITA]||[]).map(v=>`<option value="${v}"${v==defaultV?' selected':''}>${v}</option>`).join("");
+function ownOpts(defaultV){
+  return (CONFIG[KOINOTITA]||[]).map(v=>`<option value="${v}"${v==defaultV?" selected":""}>${v}</option>`).join("");
 }
 
-function makeCard(v) {
-  const d = state.vagonia[v] || {simera:"",xthes:"",kiniseis:{}};
-  CATS.forEach(c => { if (!d.kiniseis[c]) d.kiniseis[c] = []; });
-  const isOpen = openVagoni === v;
-  const totalK = CATS.reduce((s,c)=>s+(d.kiniseis[c]||[]).length,0);
+function renderAll(){
+  const vagonia=CONFIG[KOINOTITA]||[];
+  const cont=document.getElementById("vagonia-container");
+  cont.innerHTML="";
+  vagonia.forEach(v=>cont.appendChild(makeCard(v)));
+}
 
-  const wrap = document.createElement("div");
-  wrap.className = "vcard"; wrap.id = "vcard-"+v;
+function makeCard(v){
+  const d=state.vagonia[v]||{simera:"",xthes:"",kiniseis:{}};
+  CATS.forEach(c=>{if(!d.kiniseis[c]) d.kiniseis[c]=[];});
+  const isOpen=openVagoni===v;
+  const totalK=CATS.reduce((s,c)=>s+(d.kiniseis[c]||[]).length,0);
 
-  const top = document.createElement("div");
-  top.className = "vtop";
-  top.innerHTML = `
-    <span class="vnum">Βαγόνι ${v}${totalK>0?` <span style="font-size:11px;font-weight:500;color:var(--accent);">(${totalK})</span>`:''}</span>
+  const wrap=document.createElement("div");
+  wrap.className="vcard"; wrap.id="vcard-"+v;
+
+  const top=document.createElement("div");
+  top.className="vtop";
+  top.innerHTML=`
+    <span class="vnum">Βαγόνι ${v}${totalK>0?` <span style="font-size:11px;color:var(--accent);">(${totalK})</span>`:""}</span>
     <span class="xthes-lbl">χθες: <b>${d.xthes!==""?d.xthes:"—"}</b></span>
     <input class="n-input" type="number" min="0" inputmode="numeric" placeholder="—" value="${d.simera}" id="inp-${v}">
     <span class="dbadge ${diffClass(d.simera,d.xthes)}" id="diff-${v}">${diffText(d.simera,d.xthes)}</span>
-    <span class="chev ${isOpen?'open':''}" id="chev-${v}">▼</span>`;
+    <span class="chev ${isOpen?"open":""}" id="chev-${v}">▼</span>`;
 
-  top.querySelector(".n-input").addEventListener("input", function(e){
-    e.stopPropagation(); updateSimera(v, this.value);
+  top.querySelector(".n-input").addEventListener("input",function(e){
+    e.stopPropagation(); updateSimera(v,this.value);
   });
-  top.querySelector(".n-input").addEventListener("click", e=>e.stopPropagation());
-  top.addEventListener("click", ()=>toggleCard(v));
+  top.querySelector(".n-input").addEventListener("click",e=>e.stopPropagation());
+  top.addEventListener("click",()=>toggleCard(v));
   wrap.appendChild(top);
 
-  const body = document.createElement("div");
-  body.className = "vbody"+(isOpen?" open":"");
-  body.id = "vbody-"+v;
-  if (isOpen) renderBody(body, v);
+  const body=document.createElement("div");
+  body.className="vbody"+(isOpen?" open":"");
+  body.id="vbody-"+v;
+  if(isOpen) renderBody(body,v);
   wrap.appendChild(body);
   return wrap;
 }
 
-function renderBody(body, v) {
-  const d = state.vagonia[v];
-  const activeTab = activeTabs[v] || "Αφίξεις";
-  const isMeta = activeTab === "Μεταφορές";
-  const allOpts = allVagoniaOpts();
+function renderBody(body,v){
+  const d=state.vagonia[v];
+  const activeTab=activeTabs[v]||"Αφίξεις";
+  const isMeta=activeTab==="Μεταφορές";
+  const allOpts=allVagoniaOpts();
 
-  const tabsHtml = CATS.map(c => {
-    const cnt = (d.kiniseis[c]||[]).length;
-    return `<button class="tab${c===activeTab?' active':''}" data-tab="${c}" data-v="${v}">
-      ${c}${cnt>0?`<span class="badge">${cnt}</span>`:''}
+  const tabsHtml=CATS.map(c=>{
+    const cnt=(d.kiniseis[c]||[]).length;
+    return `<button class="tab${c===activeTab?" active":""}" data-tab="${c}" data-v="${v}">
+      ${c}${cnt>0?`<span class="badge">${cnt}</span>`:""}
     </button>`;
   }).join("");
 
-  const items = d.kiniseis[activeTab] || [];
-
-  // new input row
-  let newRowHtml = "";
-  if (isMeta) {
-    newRowHtml = `<div class="new-area" id="newrow-${v}">
-      <div class="new-inputs">
-        <input type="text" placeholder="Επώνυμο Όνομα" id="new-onoma-${v}">
+  // New entry area
+  let newHtml="";
+  if(isMeta){
+    newHtml=`<div class="new-area">
+      <div class="new-name-row">
+        <input type="text" placeholder="Επώνυμο" id="new-ep-${v}">
+        <input type="text" placeholder="Όνομα" id="new-on-${v}">
+      </div>
+      <div class="new-vag-row">
         <select id="new-apo-${v}"><option value="">από</option>${allOpts}</select>
         <span class="new-arr">→</span>
         <select id="new-pros-${v}"><option value="">προς</option>${allOpts}</select>
       </div>
-      <div class="err-msg" id="err-${v}">Συμπλήρωσε το όνομα πριν καταχωρίσεις</div>
+      <div class="err-msg" id="err-${v}">Συμπλήρωσε το επώνυμο πριν καταχωρίσεις</div>
       <button class="confirm-btn" data-v="${v}" data-cat="${activeTab}">Καταχώριση</button>
     </div>`;
   } else {
-    newRowHtml = `<div class="new-area" id="newrow-${v}">
-      <div class="new-inputs">
-        <input type="text" placeholder="Επώνυμο Όνομα" id="new-onoma-${v}">
-        <select id="new-vag-${v}"><option value="${v}">${v}</option>${ownOpts(v)}</select>
+    newHtml=`<div class="new-area">
+      <div class="new-name-row">
+        <input type="text" placeholder="Επώνυμο" id="new-ep-${v}">
+        <input type="text" placeholder="Όνομα" id="new-on-${v}">
       </div>
-      <div class="err-msg" id="err-${v}">Συμπλήρωσε το όνομα πριν καταχωρίσεις</div>
+      <div class="new-vag-row">
+        <select id="new-vag-${v}">${ownOpts(v)}</select>
+      </div>
+      <div class="err-msg" id="err-${v}">Συμπλήρωσε το επώνυμο πριν καταχωρίσεις</div>
       <button class="confirm-btn" data-v="${v}" data-cat="${activeTab}">Καταχώριση</button>
     </div>`;
   }
 
-  // existing items
-  const listHtml = items.map((item, i) => {
-    if (isMeta) {
+  // Existing list
+  const items=d.kiniseis[activeTab]||[];
+  const listHtml=items.map((item,i)=>{
+    if(isMeta){
       return `<div class="krow">
-        <input class="kname" type="text" value="${esc(item.onoma||'')} " placeholder="Όνομα"
-          data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="onoma">
-        <select class="kvag" data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="apo" data-val="${esc(item.apo||'')}">
+        <div class="krow-names">
+          <input class="kname" type="text" value="${esc(item.epitheto||"")}" placeholder="Επώνυμο"
+            data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="epitheto">
+          <input class="kname" type="text" value="${esc(item.onoma||"")}" placeholder="Όνομα"
+            data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="onoma">
+        </div>
+        <select class="kvag" data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="apo" data-val="${esc(item.apo||"")}">
           <option value="">από</option>${allOpts}
         </select>
         <span class="karr">→</span>
-        <select class="kvag" data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="pros" data-val="${esc(item.pros||'')}">
+        <select class="kvag" data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="pros" data-val="${esc(item.pros||"")}">
           <option value="">προς</option>${allOpts}
         </select>
         <button class="del" data-v="${v}" data-cat="${activeTab}" data-i="${i}">×</button>
       </div>`;
     } else {
       return `<div class="krow">
-        <input class="kname" type="text" value="${esc(item.onoma||'')} " placeholder="Όνομα"
-          data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="onoma">
+        <div class="krow-names">
+          <input class="kname" type="text" value="${esc(item.epitheto||"")}" placeholder="Επώνυμο"
+            data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="epitheto">
+          <input class="kname" type="text" value="${esc(item.onoma||"")}" placeholder="Όνομα"
+            data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="onoma">
+        </div>
         <select class="kvag" data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="vagoni" data-val="${esc(item.vagoni||String(v))}">
           ${ownOpts(v)}
         </select>
@@ -334,127 +336,128 @@ function renderBody(body, v) {
     }
   }).join("");
 
-  body.innerHTML = `
+  body.innerHTML=`
     <div class="tabs">${tabsHtml}</div>
-    ${newRowHtml}
-    <div class="list-label ${items.length>0?'show':''}" id="listlabel-${v}">Καταχωρημένες</div>
+    ${newHtml}
+    <div class="list-label${items.length>0?" show":""}" id="listlabel-${v}">Καταχωρημένες</div>
     <div class="krows" id="klist-${v}">${listHtml}</div>`;
 
-  // bind tabs
-  body.querySelectorAll(".tab").forEach(btn => {
-    btn.addEventListener("click", e => {
+  // Restore select values
+  body.querySelectorAll("select[data-val]").forEach(s=>s.value=s.getAttribute("data-val"));
+
+  // Tabs
+  body.querySelectorAll(".tab").forEach(btn=>{
+    btn.addEventListener("click",e=>{
       e.stopPropagation();
-      activeTabs[parseInt(btn.dataset.v)] = btn.dataset.tab;
-      renderBody(body, parseInt(btn.dataset.v));
+      activeTabs[parseInt(btn.dataset.v)]=btn.dataset.tab;
+      renderBody(body,parseInt(btn.dataset.v));
     });
   });
 
-  // confirm-btn + Enter key
-  function doAdd(vv, cat) {
-    const isMet = cat === "Μεταφορές";
-    const onoma = document.getElementById("new-onoma-"+vv).value.trim();
-    const errEl = document.getElementById("err-"+vv);
-    if (!onoma) {
-      errEl.classList.add("show");
-      document.getElementById("new-onoma-"+vv).focus();
-      setTimeout(() => errEl.classList.remove("show"), 2500);
-      return;
-    }
-    errEl.classList.remove("show");
-    if (isMet) {
-      const apo = document.getElementById("new-apo-"+vv).value;
-      const pros = document.getElementById("new-pros-"+vv).value;
-      state.vagonia[vv].kiniseis[cat].push({onoma, apo, pros});
-    } else {
-      const vagoni = document.getElementById("new-vag-"+vv).value || String(vv);
-      state.vagonia[vv].kiniseis[cat].push({onoma, vagoni});
-    }
-    autoSave();
-    renderBody(body, vv);
-    refreshCardHeader(vv);
-    setTimeout(() => { const inp = document.getElementById("new-onoma-"+vv); if(inp) inp.focus(); }, 50);
+  // Confirm button
+  body.querySelector(".confirm-btn").addEventListener("click",function(e){
+    e.stopPropagation(); doAdd(parseInt(this.dataset.v),this.dataset.cat,body);
+  });
+
+  // Enter on epitheto or onoma
+  [`new-ep-${v}`,`new-on-${v}`].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener("keydown",function(e){
+      if(e.key==="Enter"){e.preventDefault();e.stopPropagation();doAdd(v,activeTabs[v]||"Αφίξεις",body);}
+    });
+    if(el) el.addEventListener("click",e=>e.stopPropagation());
+  });
+
+  // Editable list inputs
+  body.querySelectorAll("input.kname").forEach(inp=>{
+    inp.addEventListener("click",e=>e.stopPropagation());
+    inp.addEventListener("input",function(){
+      state.vagonia[this.dataset.v].kiniseis[this.dataset.cat][parseInt(this.dataset.i)][this.dataset.field]=this.value;
+      autoSave();
+    });
+  });
+
+  // Editable list selects
+  body.querySelectorAll("select.kvag").forEach(sel=>{
+    sel.value=sel.getAttribute("data-val")||"";
+    sel.addEventListener("click",e=>e.stopPropagation());
+    sel.addEventListener("change",function(){
+      state.vagonia[this.dataset.v].kiniseis[this.dataset.cat][parseInt(this.dataset.i)][this.dataset.field]=this.value;
+      autoSave();
+    });
+  });
+
+  // Delete
+  body.querySelectorAll(".del").forEach(btn=>{
+    btn.addEventListener("click",function(e){
+      e.stopPropagation();
+      const vv=parseInt(this.dataset.v);
+      state.vagonia[vv].kiniseis[this.dataset.cat].splice(parseInt(this.dataset.i),1);
+      autoSave(); renderBody(body,vv); refreshCardHeader(vv);
+    });
+  });
+
+  // Stop propagation on new inputs/selects
+  body.querySelectorAll(".new-area input,.new-area select").forEach(el=>el.addEventListener("click",e=>e.stopPropagation()));
+}
+
+function doAdd(v,cat,body){
+  const isMet=cat==="Μεταφορές";
+  const epitheto=(document.getElementById("new-ep-"+v)||{}).value?.trim()||"";
+  const onoma=(document.getElementById("new-on-"+v)||{}).value?.trim()||"";
+  const errEl=document.getElementById("err-"+v);
+  if(!epitheto){
+    errEl.classList.add("show");
+    document.getElementById("new-ep-"+v).focus();
+    setTimeout(()=>errEl.classList.remove("show"),2500);
+    return;
   }
-
-  body.querySelector(".confirm-btn").addEventListener("click", function(e) {
-    e.stopPropagation();
-    doAdd(parseInt(this.dataset.v), this.dataset.cat);
-  });
-
-  body.querySelector("#new-onoma-"+v).addEventListener("keydown", function(e) {
-    if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); doAdd(v, activeTabs[v]||"Αφίξεις"); }
-  });
-
-  // bind editable list inputs (kname)
-  body.querySelectorAll("input.kname").forEach(inp => {
-    inp.addEventListener("click", e => e.stopPropagation());
-    inp.addEventListener("input", function() {
-      const vv = parseInt(this.dataset.v);
-      state.vagonia[vv].kiniseis[this.dataset.cat][parseInt(this.dataset.i)][this.dataset.field] = this.value;
-      autoSave();
-    });
-  });
-
-  // bind editable list selects (kvag)
-  body.querySelectorAll("select.kvag").forEach(sel => {
-    sel.value = sel.getAttribute("data-val") || "";
-    sel.addEventListener("click", e => e.stopPropagation());
-    sel.addEventListener("change", function() {
-      const vv = parseInt(this.dataset.v);
-      state.vagonia[vv].kiniseis[this.dataset.cat][parseInt(this.dataset.i)][this.dataset.field] = this.value;
-      autoSave();
-    });
-  });
-
-  // bind delete
-  body.querySelectorAll(".del").forEach(btn => {
-    btn.addEventListener("click", function(e) {
-      e.stopPropagation();
-      const vv = parseInt(this.dataset.v);
-      state.vagonia[vv].kiniseis[this.dataset.cat].splice(parseInt(this.dataset.i), 1);
-      autoSave();
-      renderBody(body, vv);
-      refreshCardHeader(vv);
-    });
-  });
-
-  // stop propagation on new-row inputs/selects
-  body.querySelectorAll("#newrow-"+v+" input, #newrow-"+v+" select").forEach(el => el.addEventListener("click", e=>e.stopPropagation()));
+  errEl.classList.remove("show");
+  if(isMet){
+    const apo=document.getElementById("new-apo-"+v).value;
+    const pros=document.getElementById("new-pros-"+v).value;
+    state.vagonia[v].kiniseis[cat].push({epitheto,onoma,apo,pros});
+  } else {
+    const vagoni=document.getElementById("new-vag-"+v).value||String(v);
+    state.vagonia[v].kiniseis[cat].push({epitheto,onoma,vagoni});
+  }
+  autoSave(); renderBody(body,v); refreshCardHeader(v);
+  setTimeout(()=>{const el=document.getElementById("new-ep-"+v);if(el)el.focus();},50);
 }
 
-function refreshCardHeader(v) {
-  const d = state.vagonia[v];
-  const totalK = CATS.reduce((s,c)=>s+(d.kiniseis[c]||[]).length,0);
-  const vnumEl = document.querySelector("#vcard-"+v+" .vnum");
-  if (vnumEl) vnumEl.innerHTML = `Βαγόνι ${v}${totalK>0?` <span style="font-size:11px;font-weight:500;color:var(--accent);">(${totalK})</span>`:''}`;
+function refreshCardHeader(v){
+  const d=state.vagonia[v];
+  const totalK=CATS.reduce((s,c)=>s+(d.kiniseis[c]||[]).length,0);
+  const el=document.querySelector("#vcard-"+v+" .vnum");
+  if(el) el.innerHTML=`Βαγόνι ${v}${totalK>0?` <span style="font-size:11px;color:var(--accent);">(${totalK})</span>`:""}`;
 }
 
-function toggleCard(v) {
-  if (openVagoni === v) {
-    openVagoni = null;
+function toggleCard(v){
+  if(openVagoni===v){
+    openVagoni=null;
     document.getElementById("vbody-"+v).classList.remove("open");
     document.getElementById("chev-"+v).classList.remove("open");
   } else {
-    if (openVagoni !== null) {
+    if(openVagoni!==null){
       document.getElementById("vbody-"+openVagoni).classList.remove("open");
       document.getElementById("chev-"+openVagoni).classList.remove("open");
     }
-    openVagoni = v;
-    const body = document.getElementById("vbody-"+v);
-    body.classList.add("open");
-    renderBody(body, v);
+    openVagoni=v;
+    const body=document.getElementById("vbody-"+v);
+    body.classList.add("open"); renderBody(body,v);
     document.getElementById("chev-"+v).classList.add("open");
     setTimeout(()=>document.getElementById("vcard-"+v).scrollIntoView({behavior:"smooth",block:"start"}),100);
   }
 }
 
-function updateSimera(v, val) {
-  state.vagonia[v].simera = val;
-  const badge = document.getElementById("diff-"+v);
-  if (badge) { badge.textContent=diffText(val,state.vagonia[v].xthes); badge.className="dbadge "+diffClass(val,state.vagonia[v].xthes); }
+function updateSimera(v,val){
+  state.vagonia[v].simera=val;
+  const badge=document.getElementById("diff-"+v);
+  if(badge){badge.textContent=diffText(val,state.vagonia[v].xthes);badge.className="dbadge "+diffClass(val,state.vagonia[v].xthes);}
   updateSummary(); autoSave();
 }
 
-function updateSummary() {
+function updateSummary(){
   let tot=0,totX=0,hasX=false;
   Object.values(state.vagonia||{}).forEach(d=>{
     if(d.simera!=="") tot+=parseInt(d.simera)||0;
@@ -472,26 +475,10 @@ function diffClass(s,x){if(s===""||x==="")return"zero";const d=parseInt(s)-parse
 function diffText(s,x){if(s===""||x==="")return"—";const d=parseInt(s)-parseInt(x);return d>0?"+"+d:String(d);}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
 
-// Fallback config (used if config.json fails to load)
-const CONFIG_FALLBACK = {
-  "3Δ": [331,332,333,334,335,336,341,342,343,344,345,346,350,215],
-  "3Μ": [311,312,313,314,315,316,321,322,323,324,325,326,212,214],
-  "4Δ": [441,442,443,444,445,446,431,432,433,434,435,436,450,225],
-  "4Μ": [411,412,413,414,415,416,421,422,423,424,425,426,224],
-  "5αρια": [511,512,513,514,515,521,522,523,524,525],
-  "6αρια": [531,532,533,534,535,536,537,538,539]
-};
-
-let CONFIG = null;
-
-async function init() {
-  CONFIG = CONFIG_FALLBACK;
-  document.getElementById("koin-label").textContent = KOINOTITA;
-  document.getElementById("date-sel").value = new Date().toISOString().slice(0,10);
-  loadDay();
-}
-
-init();
+// INIT
+document.getElementById("koin-label").textContent=KOINOTITA;
+document.getElementById("date-sel").value=todayStr();
+loadDay();
 </script>
 </body>
 </html>
