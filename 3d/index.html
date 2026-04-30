@@ -59,14 +59,18 @@
   .tab .badge{font-size:10px;font-weight:600;border-radius:99px;padding:0 5px;min-width:16px;text-align:center;background:rgba(255,255,255,0.25);}
   .tab:not(.active) .badge{background:var(--border);color:var(--muted);}
 
-  /* NEW INPUT AREA */
-  .new-row{display:flex;gap:5px;align-items:center;margin-bottom:0.75rem;}
-  .new-row input[type=text]{flex:1;font-family:var(--font);font-size:14px;color:var(--text);background:var(--bg);border:1.5px solid var(--accent);border-radius:var(--rs);padding:8px 10px;outline:none;}
-  .new-row input[type=text]::placeholder{color:var(--hint);}
-  .new-row select{font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);border:1.5px solid var(--accent);border-radius:var(--rs);padding:8px 22px 8px 8px;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%232D6A4F' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;width:76px;}
-  .new-row .arr{color:var(--hint);font-size:13px;flex:0 0 auto;}
-  .add-confirm{font-family:var(--font);font-size:13px;font-weight:600;color:#fff;background:var(--accent);border:none;border-radius:var(--rs);padding:8px 14px;cursor:pointer;white-space:nowrap;}
-  .add-confirm:active{opacity:0.8;}
+  /* NEW ENTRY AREA */
+  .new-area{background:var(--bg);border-radius:var(--rs);padding:10px;margin-bottom:10px;border:1px solid var(--border);}
+  .new-inputs{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
+  .new-inputs input[type=text]{flex:1;font-family:var(--font);font-size:14px;color:var(--text);background:var(--surface);border:1.5px solid var(--border-strong);border-radius:var(--rs);padding:8px 10px;outline:none;}
+  .new-inputs input[type=text]:focus{border-color:var(--accent);}
+  .new-inputs input[type=text]::placeholder{color:var(--hint);}
+  .new-inputs select{font-family:var(--font);font-size:13px;color:var(--text);background:var(--surface);border:1.5px solid var(--border-strong);border-radius:var(--rs);padding:8px 22px 8px 8px;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237A786E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;width:76px;}
+  .new-arr{color:var(--hint);font-size:13px;flex:0 0 auto;}
+  .err-msg{font-size:12px;color:var(--danger);margin-bottom:6px;display:none;font-weight:500;}
+  .err-msg.show{display:block;}
+  .confirm-btn{font-family:var(--font);font-size:14px;font-weight:600;color:#fff;background:var(--accent);border:none;border-radius:var(--rs);padding:10px;cursor:pointer;width:100%;text-align:center;}
+  .confirm-btn:active{opacity:0.85;}
 
   /* LIST OF EXISTING */
   .list-label{font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--hint);margin-bottom:6px;display:none;}
@@ -80,7 +84,6 @@
   .krow .karr{font-size:12px;color:var(--hint);flex:0 0 auto;}
   .krow .del{font-size:18px;line-height:1;color:var(--hint);background:none;border:none;cursor:pointer;padding:0 2px;flex:0 0 auto;}
   .krow .del:active{color:var(--danger);}
-  .empty-hint{font-size:12px;color:var(--hint);text-align:center;padding:0.5rem 0;display:none;}
 </style>
 </head>
 <body>
@@ -108,6 +111,89 @@
 
 <script>
 const KOINOTITA = "3Δ";
+const SUPABASE_URL = "https://neyybmgplyxnkangafkf.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5leXlibWdwbHl4bmthbmdhZmtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NTQ4NjQsImV4cCI6MjA5MzEzMDg2NH0.NqyrMsDh52GGn2DRFmj9IecMFpPIzFFfPByLg4fQBKg";
+
+async function syncToSupabase() {
+  const imerominia = document.getElementById("date-sel").value;
+  if (!imerominia || !state.vagonia) return;
+
+  const rows = Object.entries(state.vagonia).map(([vagoni, d]) => ({
+    koinotita: KOINOTITA,
+    imerominia: imerominia,
+    vagoni: parseInt(vagoni),
+    simera: d.simera !== "" ? parseInt(d.simera) : null,
+    xthes: d.xthes !== "" ? parseInt(d.xthes) : null,
+    afikseis: d.kiniseis["Αφίξεις"] || [],
+    apoxwriseis: d.kiniseis["Αποχωρήσεις"] || [],
+    adeies: d.kiniseis["Άδειες"] || [],
+    metafores: d.kiniseis["Μεταφορές"] || [],
+    updated_at: new Date().toISOString()
+  }));
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/anafores`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Prefer": "resolution=merge-duplicates"
+      },
+      body: JSON.stringify(rows)
+    });
+    if (!res.ok) console.error("Supabase error:", await res.text());
+  } catch(e) {
+    console.error("Sync failed:", e);
+  }
+}
+
+async function loadFromSupabase() {
+  const imerominia = document.getElementById("date-sel").value;
+  if (!imerominia) return false;
+
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/anafores?koinotita=eq.${encodeURIComponent(KOINOTITA)}&imerominia=eq.${imerominia}&select=*`,
+      { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+    );
+    const rows = await res.json();
+    if (!rows.length) return false;
+
+    state = { vagonia: {} };
+    rows.forEach(row => {
+      state.vagonia[row.vagoni] = {
+        simera: row.simera !== null ? String(row.simera) : "",
+        xthes: row.xthes !== null ? String(row.xthes) : "",
+        kiniseis: {
+          "Αφίξεις": row.afikseis || [],
+          "Αποχωρήσεις": row.apoxwriseis || [],
+          "Άδειες": row.adeies || [],
+          "Μεταφορές": row.metafores || []
+        }
+      };
+    });
+    return true;
+  } catch(e) {
+    console.error("Load failed:", e);
+    return false;
+  }
+}
+
+async function loadPrevFromSupabase() {
+  const d = new Date(document.getElementById("date-sel").value);
+  d.setDate(d.getDate()-1);
+  const prevDate = d.toISOString().slice(0,10);
+
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/anafores?koinotita=eq.${encodeURIComponent(KOINOTITA)}&imerominia=eq.${prevDate}&select=vagoni,simera`,
+      { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+    );
+    const rows = await res.json();
+    return Object.fromEntries(rows.map(r => [r.vagoni, r.simera]));
+  } catch(e) { return {}; }
+}
 let CONFIG = null;
 let state = {}, openVagoni = null, activeTabs = {}, saveTimer = null;
 const CATS = ["Αφίξεις","Αποχωρήσεις","Άδειες","Μεταφορές"];
@@ -139,32 +225,39 @@ function prevKey() {
   return "camp_" + KOINOTITA + "|" + d.toISOString().slice(0,10);
 }
 
-function loadDay() {
+async function loadDay() {
   const vagonia = CONFIG[KOINOTITA] || [];
-  const saved = localStorage.getItem(stateKey());
-  if (saved) {
-    state = JSON.parse(saved);
-    // ensure all wagons present
-    vagonia.forEach(v => {
-      if (!state.vagonia[v]) {
-        const prev = JSON.parse(localStorage.getItem(prevKey()) || "null");
-        state.vagonia[v] = { simera:"", xthes: prev?.vagonia?.[v]?.simera ?? "", kiniseis:{} };
-      }
-      CATS.forEach(c => { if (!state.vagonia[v].kiniseis[c]) state.vagonia[v].kiniseis[c] = []; });
-    });
-  } else {
-    const prev = JSON.parse(localStorage.getItem(prevKey()) || "null");
-    state = { vagonia: {} };
-    vagonia.forEach(v => {
-      state.vagonia[v] = {
-        simera: "",
-        xthes: prev?.vagonia?.[v]?.simera ?? "",
-        kiniseis: {"Αφίξεις":[],"Αποχωρήσεις":[],"Άδειες":[],"Μεταφορές":[]}
-      };
-    });
-  }
   openVagoni = null;
   vagonia.forEach(v => { if (!activeTabs[v]) activeTabs[v] = "Αφίξεις"; });
+
+  // Try Supabase first
+  const loaded = await loadFromSupabase();
+
+  if (!loaded) {
+    // fallback to localStorage
+    const saved = localStorage.getItem(stateKey());
+    if (saved) {
+      state = JSON.parse(saved);
+    } else {
+      // load prev day from Supabase for xthes
+      const prevData = await loadPrevFromSupabase();
+      state = { vagonia: {} };
+      vagonia.forEach(v => {
+        state.vagonia[v] = {
+          simera: "",
+          xthes: prevData[v] !== undefined ? String(prevData[v]) : "",
+          kiniseis: {"Αφίξεις":[],"Αποχωρήσεις":[],"Άδειες":[],"Μεταφορές":[]}
+        };
+      });
+    }
+  }
+
+  // ensure all wagons present
+  vagonia.forEach(v => {
+    if (!state.vagonia[v]) state.vagonia[v] = { simera:"", xthes:"", kiniseis:{} };
+    CATS.forEach(c => { if (!state.vagonia[v].kiniseis[c]) state.vagonia[v].kiniseis[c] = []; });
+  });
+
   renderAll();
   updateSummary();
 }
@@ -173,12 +266,13 @@ function onDateChange() { loadDay(); }
 
 function autoSave() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
+  saveTimer = setTimeout(async () => {
     localStorage.setItem(stateKey(), JSON.stringify(state));
+    await syncToSupabase();
     const pill = document.getElementById("save-pill");
     pill.classList.add("show");
     setTimeout(() => pill.classList.remove("show"), 1800);
-  }, 400);
+  }, 800);
 }
 
 function renderAll() {
@@ -250,18 +344,24 @@ function renderBody(body, v) {
   // new input row
   let newRowHtml = "";
   if (isMeta) {
-    newRowHtml = `<div class="new-row" id="newrow-${v}">
-      <input type="text" placeholder="Επώνυμο Όνομα" id="new-onoma-${v}">
-      <select id="new-apo-${v}"><option value="">από</option>${allOpts}</select>
-      <span class="arr">→</span>
-      <select id="new-pros-${v}"><option value="">προς</option>${allOpts}</select>
-      <button class="add-confirm" data-v="${v}" data-cat="${activeTab}">+</button>
+    newRowHtml = `<div class="new-area" id="newrow-${v}">
+      <div class="new-inputs">
+        <input type="text" placeholder="Επώνυμο Όνομα" id="new-onoma-${v}">
+        <select id="new-apo-${v}"><option value="">από</option>${allOpts}</select>
+        <span class="new-arr">→</span>
+        <select id="new-pros-${v}"><option value="">προς</option>${allOpts}</select>
+      </div>
+      <div class="err-msg" id="err-${v}">Συμπλήρωσε το όνομα πριν καταχωρίσεις</div>
+      <button class="confirm-btn" data-v="${v}" data-cat="${activeTab}">Καταχώριση</button>
     </div>`;
   } else {
-    newRowHtml = `<div class="new-row" id="newrow-${v}">
-      <input type="text" placeholder="Επώνυμο Όνομα" id="new-onoma-${v}">
-      <select id="new-vag-${v}"><option value="${v}">${v}</option>${ownOpts(v)}</select>
-      <button class="add-confirm" data-v="${v}" data-cat="${activeTab}">+</button>
+    newRowHtml = `<div class="new-area" id="newrow-${v}">
+      <div class="new-inputs">
+        <input type="text" placeholder="Επώνυμο Όνομα" id="new-onoma-${v}">
+        <select id="new-vag-${v}"><option value="${v}">${v}</option>${ownOpts(v)}</select>
+      </div>
+      <div class="err-msg" id="err-${v}">Συμπλήρωσε το όνομα πριν καταχωρίσεις</div>
+      <button class="confirm-btn" data-v="${v}" data-cat="${activeTab}">Καταχώριση</button>
     </div>`;
   }
 
@@ -307,14 +407,18 @@ function renderBody(body, v) {
     });
   });
 
-  // bind + button
-  body.querySelector(".add-confirm").addEventListener("click", function(e) {
-    e.stopPropagation();
-    const vv = parseInt(this.dataset.v);
-    const cat = this.dataset.cat;
+  // confirm-btn + Enter key
+  function doAdd(vv, cat) {
     const isMet = cat === "Μεταφορές";
     const onoma = document.getElementById("new-onoma-"+vv).value.trim();
-    if (!onoma) { document.getElementById("new-onoma-"+vv).focus(); return; }
+    const errEl = document.getElementById("err-"+vv);
+    if (!onoma) {
+      errEl.classList.add("show");
+      document.getElementById("new-onoma-"+vv).focus();
+      setTimeout(() => errEl.classList.remove("show"), 2500);
+      return;
+    }
+    errEl.classList.remove("show");
     if (isMet) {
       const apo = document.getElementById("new-apo-"+vv).value;
       const pros = document.getElementById("new-pros-"+vv).value;
@@ -326,8 +430,16 @@ function renderBody(body, v) {
     autoSave();
     renderBody(body, vv);
     refreshCardHeader(vv);
-    // refocus new input
     setTimeout(() => { const inp = document.getElementById("new-onoma-"+vv); if(inp) inp.focus(); }, 50);
+  }
+
+  body.querySelector(".confirm-btn").addEventListener("click", function(e) {
+    e.stopPropagation();
+    doAdd(parseInt(this.dataset.v), this.dataset.cat);
+  });
+
+  body.querySelector("#new-onoma-"+v).addEventListener("keydown", function(e) {
+    if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); doAdd(v, activeTabs[v]||"Αφίξεις"); }
   });
 
   // bind editable list inputs (kname)
