@@ -186,24 +186,15 @@ async function syncToBackend(){
       }
     };
   });
-  const payload=JSON.stringify({koinotita:KOINOTITA,imerominia,vagonia});
+  const payload=encodeURIComponent(JSON.stringify({koinotita:KOINOTITA,imerominia,vagonia}));
+  const cbName="cb_"+Date.now();
   return new Promise(resolve=>{
-    let iframe=document.getElementById("sync-iframe");
-    if(!iframe){
-      iframe=document.createElement("iframe");
-      iframe.id="sync-iframe"; iframe.name="sync-iframe";
-      iframe.style.display="none";
-      document.body.appendChild(iframe);
-    }
-    const form=document.createElement("form");
-    form.method="POST"; form.action=APPS_SCRIPT_URL; form.target="sync-iframe";
-    const inp=document.createElement("input");
-    inp.type="hidden"; inp.name="payload"; inp.value=payload;
-    form.appendChild(inp);
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-    setTimeout(resolve,1000);
+    window[cbName]=function(){ delete window[cbName]; resolve(); };
+    const script=document.createElement("script");
+    script.src=`${APPS_SCRIPT_URL}?payload=${payload}&callback=${cbName}`;
+    script.onerror=()=>{ delete window[cbName]; resolve(); };
+    document.head.appendChild(script);
+    setTimeout(()=>{ delete window[cbName]; resolve(); },5000);
   });
 }
 
