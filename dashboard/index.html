@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dashboard — Κατασκήνωση</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+  :root {
+    --bg:#F5F4F0;--surface:#FFF;--border:#E2E0D8;--border-strong:#C8C5BA;
+    --text:#1A1916;--muted:#7A786E;--hint:#A8A69E;
+    --accent:#2D6A4F;--accent-bg:#E8F4EE;
+    --danger:#C0392B;--danger-bg:#FDEDEC;
+    --warn:#D4860A;--warn-bg:#FEF6E7;
+    --rs:8px;--font:'DM Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:var(--font);color:var(--text);background:var(--bg);min-height:100vh;padding-bottom:3rem;}
+
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 1.25rem;position:sticky;top:0;z-index:100;}
+  .header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.625rem;}
+  .header-top h1{font-size:17px;font-weight:600;}
+  .date-row{display:flex;gap:8px;align-items:center;}
+  .date-row input[type=date]{flex:1;font-family:var(--font);font-size:14px;font-weight:500;color:var(--text);background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--rs);padding:7px 10px;outline:none;-webkit-appearance:none;}
+  .refresh-btn{font-family:var(--font);font-size:13px;padding:7px 14px;border-radius:var(--rs);border:1px solid var(--border-strong);background:var(--surface);color:var(--muted);cursor:pointer;}
+  .refresh-btn:active{background:var(--bg);}
+
+  /* TOTAL BAR */
+  .total-bar{background:var(--accent);color:#fff;padding:1rem 1.25rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;}
+  .total-bar .n{font-size:26px;font-weight:600;letter-spacing:-0.02em;}
+  .total-bar .l{font-size:11px;opacity:0.8;margin-top:2px;}
+  .total-bar .diff{font-size:22px;font-weight:600;}
+
+  .sec-label{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);padding:0.75rem 1rem 0.4rem;}
+
+  /* COMMUNITY CARD */
+  .kcard{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:6px;overflow:hidden;}
+  .ktop{display:flex;align-items:center;gap:10px;padding:0.875rem 1rem;cursor:pointer;}
+  .kname{font-size:16px;font-weight:600;flex:1;}
+  .kstatus{font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;}
+  .kstatus.ok{background:var(--accent-bg);color:var(--accent);}
+  .kstatus.warn{background:var(--warn-bg);color:var(--warn);}
+  .kstatus.empty{background:var(--bg);color:var(--hint);border:1px solid var(--border);}
+  .knums{display:flex;gap:12px;align-items:center;}
+  .kn{font-size:20px;font-weight:600;}
+  .kdiff{font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;}
+  .kdiff.pos{background:var(--accent-bg);color:var(--accent);}
+  .kdiff.neg{background:var(--danger-bg);color:var(--danger);}
+  .kdiff.zero{background:var(--bg);color:var(--hint);border:1px solid var(--border);}
+  .chev{color:var(--hint);font-size:11px;transition:transform 0.25s;}
+  .chev.open{transform:rotate(180deg);}
+
+  /* COMMUNITY DETAIL */
+  .kbody{border-top:1px solid var(--border);display:none;padding:0.875rem 1rem;}
+  .kbody.open{display:block;}
+
+  /* VAGONI TABLE */
+  .vtable{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:0.75rem;}
+  .vtable th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);}
+  .vtable td{padding:5px 6px;border-bottom:1px solid var(--border);}
+  .vtable tr:last-child td{border-bottom:none;}
+  .vnum-cell{font-weight:600;}
+  .diff-cell.pos{color:var(--accent);font-weight:600;}
+  .diff-cell.neg{color:var(--danger);font-weight:600;}
+
+  /* KINISEIS */
+  .kinisi-group{margin-top:0.5rem;}
+  .kinisi-title{font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--hint);margin-bottom:4px;}
+  .kinisi-entry{font-size:13px;padding:2px 0;color:var(--text);}
+
+  .loading{text-align:center;padding:2rem;color:var(--muted);font-size:14px;}
+  .no-data{font-size:13px;color:var(--hint);font-style:italic;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <h1>Dashboard Κατασκήνωσης</h1>
+    <a href="../" style="font-size:13px;color:var(--muted);text-decoration:none;">← Πίσω</a>
+  </div>
+  <div class="date-row">
+    <input type="date" id="date-sel" onchange="loadAll()">
+    <button class="refresh-btn" onclick="loadAll()">↻ Ανανέωση</button>
+  </div>
+</div>
+
+<div class="total-bar" id="total-bar" style="display:none;">
+  <div><div class="n" id="t-xthes">—</div><div class="l">χθες</div></div>
+  <div><div class="n" id="t-simera">0</div><div class="l">σήμερα</div></div>
+  <div><div class="diff" id="t-diff">—</div><div class="l">διαφορά</div></div>
+</div>
+
+<div class="sec-label">Κοινότητες</div>
+<div id="cards-container"><div class="loading">Φόρτωση...</div></div>
+
+<script>
+const SB_URL = "https://neyybmgplyxnkangafkf.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5leXlibWdwbHl4bmthbmdhZmtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NTQ4NjQsImV4cCI6MjA5MzEzMDg2NH0.NqyrMsDh52GGn2DRFmj9IecMFpPIzFFfPByLg4fQBKg";
+const KOINOTITES = ["3Δ","3Μ","4Δ","4Μ","5αρια","6αρια"];
+const sbH = {"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
+
+let openCard = null;
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+async function sbGet(path){
+  const r = await fetch(SB_URL+path,{headers:sbH});
+  return r.json();
+}
+
+async function loadAll(){
+  const date = document.getElementById("date-sel").value;
+  const cont = document.getElementById("cards-container");
+  cont.innerHTML = '<div class="loading">Φόρτωση...</div>';
+  openCard = null;
+
+  const rows = await sbGet(
+    `/rest/v1/anafores?imerominia=eq.${date}&select=*&order=koinotita,vagoni`
+  );
+
+  // Group by koinotita
+  const byK = {};
+  KOINOTITES.forEach(k => byK[k] = []);
+  (rows||[]).forEach(r => { if(byK[r.koinotita]) byK[r.koinotita].push(r); });
+
+  // Totals
+  let totSimera=0, totXthes=0, hasXthes=false;
+  Object.values(byK).forEach(rows => {
+    rows.forEach(r => {
+      if(r.simera!==null) totSimera+=r.simera;
+      if(r.xthes!==null){ totXthes+=r.xthes; hasXthes=true; }
+    });
+  });
+
+  // Total bar
+  const tBar = document.getElementById("total-bar");
+  tBar.style.display="grid";
+  document.getElementById("t-simera").textContent = totSimera;
+  document.getElementById("t-xthes").textContent = hasXthes ? totXthes : "—";
+  const tDiff = hasXthes ? totSimera-totXthes : null;
+  const tDiffEl = document.getElementById("t-diff");
+  tDiffEl.textContent = tDiff!==null ? (tDiff>0?"+"+tDiff:String(tDiff)) : "—";
+  tDiffEl.style.color = tDiff>0?"#E8F4EE":tDiff<0?"#FDEDEC":"rgba(255,255,255,0.7)";
+
+  // Cards
+  cont.innerHTML = "";
+  KOINOTITES.forEach(k => {
+    cont.appendChild(makeKCard(k, byK[k]));
+  });
+}
+
+function makeKCard(koinotita, rows) {
+  const hasData = rows.length > 0;
+  const simera = rows.reduce((s,r)=>s+(r.simera||0),0);
+  const xthes = rows.reduce((s,r)=>s+(r.xthes||0),0);
+  const hasX = rows.some(r=>r.xthes!==null);
+  const diff = hasX ? simera-xthes : null;
+
+  const allAf = rows.flatMap(r=>(r.afikseis||[]).map(e=>({...e,vagoni:r.vagoni})));
+  const allAp = rows.flatMap(r=>(r.apoxwriseis||[]).map(e=>({...e,vagoni:r.vagoni})));
+  const allAd = rows.flatMap(r=>(r.adeies||[]).map(e=>({...e,vagoni:r.vagoni})));
+  const allMe = rows.flatMap(r=>(r.metafores||[]).map(e=>({...e,vagoni:r.vagoni})));
+
+  const wrap = document.createElement("div");
+  wrap.className = "kcard";
+
+  const statusClass = !hasData?"empty":diff!==null&&diff>=0?"ok":"warn";
+  const statusText = !hasData?"Δεν έχει συμπληρώσει":diff!==null&&diff>=0?"✓ Συμπληρώθηκε":"⚠ Αρνητική διαφορά";
+  const diffClass = diff===null?"zero":diff>0?"pos":diff<0?"neg":"zero";
+  const diffText = diff===null?"—":diff>0?"+"+diff:String(diff);
+
+  const top = document.createElement("div");
+  top.className = "ktop";
+  top.innerHTML = `
+    <span class="kname">${koinotita}</span>
+    <span class="kstatus ${statusClass}">${statusText}</span>
+    ${hasData?`
+    <div class="knums">
+      <span class="kn">${simera}</span>
+      <span class="kdiff ${diffClass}">${diffText}</span>
+    </div>`:""}
+    <span class="chev" id="chev-${koinotita}">▼</span>`;
+
+  top.addEventListener("click",()=>toggleKCard(koinotita, wrap, rows, allAf, allAp, allAd, allMe));
+  wrap.appendChild(top);
+
+  const body = document.createElement("div");
+  body.className = "kbody";
+  body.id = "kbody-"+koinotita;
+  wrap.appendChild(body);
+
+  return wrap;
+}
+
+function toggleKCard(k, wrap, rows, allAf, allAp, allAd, allMe){
+  const body = document.getElementById("kbody-"+k);
+  const chev = document.getElementById("chev-"+k);
+
+  if(openCard===k){
+    openCard=null;
+    body.classList.remove("open");
+    chev.classList.remove("open");
+    return;
+  }
+
+  if(openCard){
+    const prev = document.getElementById("kbody-"+openCard);
+    const prevChev = document.getElementById("chev-"+openCard);
+    if(prev) prev.classList.remove("open");
+    if(prevChev) prevChev.classList.remove("open");
+  }
+  openCard=k;
+  body.classList.add("open");
+  chev.classList.add("open");
+
+  if(!rows.length){
+    body.innerHTML = '<div class="no-data">Δεν υπάρχουν δεδομένα για αυτή την ημερομηνία.</div>';
+    return;
+  }
+
+  // Vagoni table
+  let html = `<table class="vtable">
+    <tr><th>Βαγόνι</th><th>Χθες</th><th>Σήμερα</th><th>Διαφορά</th></tr>`;
+  rows.forEach(r => {
+    const d = r.simera!==null&&r.xthes!==null ? r.simera-r.xthes : null;
+    const dc = d===null?"":d>0?"pos":d<0?"neg":"";
+    html += `<tr>
+      <td class="vnum-cell">${r.vagoni}</td>
+      <td>${r.xthes??'—'}</td>
+      <td><b>${r.simera??'—'}</b></td>
+      <td class="diff-cell ${dc}">${d===null?"—":d>0?"+"+d:String(d)}</td>
+    </tr>`;
+  });
+  html += `</table>`;
+
+  const fmt = e=>`${e.epitheto||''} ${e.onoma||''}`.trim();
+  if(allAf.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Αφίξεις (${allAf.length})</div>${allAf.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
+  if(allAp.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Αποχωρήσεις (${allAp.length})</div>${allAp.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
+  if(allAd.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Άδειες (${allAd.length})</div>${allAd.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
+  if(allMe.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Μεταφορές (${allMe.length})</div>${allMe.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">${e.apo||'?'}→${e.pros||'?'}</span></div>`).join('')}</div>`;
+
+  body.innerHTML = html;
+}
+
+document.getElementById("date-sel").value = todayStr();
+loadAll();
+</script>
+</body>
+</html>

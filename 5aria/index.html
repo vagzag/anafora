@@ -577,29 +577,64 @@ async function loadHistoryDate(imerominia) {
   const cont = document.getElementById("hist-content");
   if (!rows || !rows.length) { cont.innerHTML = '<div class="loading">Δεν υπάρχουν δεδομένα.</div>'; return; }
 
-  let html = "";
-  rows.forEach(row => {
-    const afikseis = (row.afikseis||[]).map(e=>`${e.epitheto||""} ${e.onoma||""}`.trim()).filter(Boolean);
-    const apox = (row.apoxwriseis||[]).map(e=>`${e.epitheto||""} ${e.onoma||""}`.trim()).filter(Boolean);
-    const adeies = (row.adeies||[]).map(e=>`${e.epitheto||""} ${e.onoma||""}`.trim()).filter(Boolean);
-    const meta = (row.metafores||[]).map(e=>`${e.epitheto||""} ${e.onoma||""} (${e.apo||"?"}→${e.pros||"?"})`.trim()).filter(Boolean);
+  // Summary bar
+  const totalSimera = rows.reduce((s,r) => s+(r.simera||0), 0);
+  const totalXthes = rows.reduce((s,r) => s+(r.xthes||0), 0);
+  const diff = totalSimera - totalXthes;
+  const allAfikseis = rows.flatMap(r=>(r.afikseis||[]).map(e=>({...e, vagoni:r.vagoni})));
+  const allApox = rows.flatMap(r=>(r.apoxwriseis||[]).map(e=>({...e, vagoni:r.vagoni})));
+  const allAdeies = rows.flatMap(r=>(r.adeies||[]).map(e=>({...e, vagoni:r.vagoni})));
+  const allMeta = rows.flatMap(r=>(r.metafores||[]).map(e=>({...e, vagoni:r.vagoni})));
 
-    const hasKiniseis = afikseis.length||apox.length||adeies.length||meta.length;
+  const diffColor = diff>0?'var(--accent)':diff<0?'var(--danger)':'var(--muted)';
+  const diffStr = diff>0?'+'+diff:String(diff);
+
+  let html = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:1rem;margin-bottom:1rem;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:0.75rem;">
+      <div style="text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">χθες</div>
+        <div style="font-size:22px;font-weight:600;">${totalXthes||'—'}</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">σήμερα</div>
+        <div style="font-size:22px;font-weight:600;">${totalSimera}</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">διαφορά</div>
+        <div style="font-size:22px;font-weight:600;color:${diffColor};">${totalXthes?diffStr:'—'}</div>
+      </div>
+    </div>`;
+
+  // Kiniseis summary
+  if (allAfikseis.length) html += `<div style="margin-top:6px;"><div class="hist-section-title">Αφίξεις (${allAfikseis.length})</div>${allAfikseis.map(e=>`<div class="hist-entry">• ${e.epitheto||''} ${e.onoma||''} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
+  if (allApox.length) html += `<div style="margin-top:6px;"><div class="hist-section-title">Αποχωρήσεις (${allApox.length})</div>${allApox.map(e=>`<div class="hist-entry">• ${e.epitheto||''} ${e.onoma||''} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
+  if (allAdeies.length) html += `<div style="margin-top:6px;"><div class="hist-section-title">Άδειες (${allAdeies.length})</div>${allAdeies.map(e=>`<div class="hist-entry">• ${e.epitheto||''} ${e.onoma||''} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
+  if (allMeta.length) html += `<div style="margin-top:6px;"><div class="hist-section-title">Μεταφορές (${allMeta.length})</div>${allMeta.map(e=>`<div class="hist-entry">• ${e.epitheto||''} ${e.onoma||''} <span style="color:var(--muted);font-size:11px;">${e.apo||'?'}→${e.pros||'?'}</span></div>`).join('')}</div>`;
+  html += `</div>`;
+
+  // Per vagoni
+  rows.forEach(row => {
+    const afikseis = (row.afikseis||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
+    const apox = (row.apoxwriseis||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
+    const adeies = (row.adeies||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
+    const meta = (row.metafores||[]).map(e=>`${e.epitheto||''} ${e.onoma||''} (${e.apo||'?'}→${e.pros||'?'})`.trim()).filter(Boolean);
+    const hasK = afikseis.length||apox.length||adeies.length||meta.length;
+
     html += `<div class="hist-vagoni">
       <div class="hist-vtop">
         <span class="hist-vnum">Βαγόνι ${row.vagoni}</span>
         <div class="hist-vsummary">
-          <span style="font-size:12px;color:var(--muted);">χθες: ${row.xthes??'—'}</span>
+          <span style="font-size:12px;color:var(--muted);">χθες: <b>${row.xthes??'—'}</b></span>
           <span class="hist-n">${row.simera??'—'}</span>
           <span class="dbadge ${diffClass(row.simera,row.xthes)}">${diffText(row.simera,row.xthes)}</span>
         </div>
       </div>`;
-    if (hasKiniseis) {
+    if (hasK) {
       html += `<div class="hist-section">`;
-      if (afikseis.length) html += `<div class="hist-section-title">Αφίξεις</div>${afikseis.map(n=>`<div class="hist-entry">• ${n}</div>`).join("")}`;
-      if (apox.length) html += `<div class="hist-section-title" style="margin-top:6px;">Αποχωρήσεις</div>${apox.map(n=>`<div class="hist-entry">• ${n}</div>`).join("")}`;
-      if (adeies.length) html += `<div class="hist-section-title" style="margin-top:6px;">Άδειες</div>${adeies.map(n=>`<div class="hist-entry">• ${n}</div>`).join("")}`;
-      if (meta.length) html += `<div class="hist-section-title" style="margin-top:6px;">Μεταφορές</div>${meta.map(n=>`<div class="hist-entry">• ${n}</div>`).join("")}`;
+      if (afikseis.length) html += `<div class="hist-section-title">Αφίξεις</div>${afikseis.map(n=>`<div class="hist-entry">• ${n}</div>`).join('')}`;
+      if (apox.length) html += `<div class="hist-section-title" style="margin-top:4px;">Αποχωρήσεις</div>${apox.map(n=>`<div class="hist-entry">• ${n}</div>`).join('')}`;
+      if (adeies.length) html += `<div class="hist-section-title" style="margin-top:4px;">Άδειες</div>${adeies.map(n=>`<div class="hist-entry">• ${n}</div>`).join('')}`;
+      if (meta.length) html += `<div class="hist-section-title" style="margin-top:4px;">Μεταφορές</div>${meta.map(n=>`<div class="hist-entry">• ${n}</div>`).join('')}`;
       html += `</div>`;
     }
     html += `</div>`;
