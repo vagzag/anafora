@@ -111,119 +111,43 @@
 
 <script>
 const KOINOTITA = "3Δ";
-const SUPABASE_URL = "https://neyybmgplyxnkangafkf.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5leXlibWdwbHl4bmthbmdhZmtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NTQ4NjQsImV4cCI6MjA5MzEzMDg2NH0.NqyrMsDh52GGn2DRFmj9IecMFpPIzFFfPByLg4fQBKg";
+const APPS_SCRIPT_URL = "PENDING";
 
-async function syncToSupabase() {
+async function syncToBackend() {
   const imerominia = document.getElementById("date-sel").value;
   if (!imerominia || !state.vagonia) return;
 
-  const rows = Object.entries(state.vagonia).map(([vagoni, d]) => ({
-    koinotita: KOINOTITA,
-    imerominia: imerominia,
-    vagoni: parseInt(vagoni),
-    simera: d.simera !== "" ? parseInt(d.simera) : null,
-    xthes: d.xthes !== "" ? parseInt(d.xthes) : null,
-    afikseis: d.kiniseis["Αφίξεις"] || [],
-    apoxwriseis: d.kiniseis["Αποχωρήσεις"] || [],
-    adeies: d.kiniseis["Άδειες"] || [],
-    metafores: d.kiniseis["Μεταφορές"] || [],
-    updated_at: new Date().toISOString()
-  }));
+  // Convert kiniseis keys to English for Apps Script
+  const vagonia = {};
+  Object.entries(state.vagonia).forEach(([v, d]) => {
+    vagonia[v] = {
+      simera: d.simera !== "" ? parseInt(d.simera) : null,
+      xthes: d.xthes !== "" ? parseInt(d.xthes) : null,
+      kiniseis: {
+        afikseis: d.kiniseis["Αφίξεις"] || [],
+        apoxwriseis: d.kiniseis["Αποχωρήσεις"] || [],
+        adeies: d.kiniseis["Άδειες"] || [],
+        metafores: d.kiniseis["Μεταφορές"] || []
+      }
+    };
+  });
+
+  const payload = { koinotita: KOINOTITA, imerominia, vagonia };
 
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/anafores`, {
+    await fetch(APPS_SCRIPT_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`,
-        "Prefer": "resolution=merge-duplicates"
-      },
-      body: JSON.stringify(rows)
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     });
-    if (!res.ok) console.error("Supabase error:", await res.text());
   } catch(e) {
     console.error("Sync failed:", e);
   }
 }
 
-async function loadFromSupabase() {
-  const imerominia = document.getElementById("date-sel").value;
-  if (!imerominia) return false;
-
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/anafores?koinotita=eq.${encodeURIComponent(KOINOTITA)}&imerominia=eq.${imerominia}&select=*`,
-      { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
-    );
-    const rows = await res.json();
-    if (!rows.length) return false;
-
-    state = { vagonia: {} };
-    rows.forEach(row => {
-      state.vagonia[row.vagoni] = {
-        simera: row.simera !== null ? String(row.simera) : "",
-        xthes: row.xthes !== null ? String(row.xthes) : "",
-        kiniseis: {
-          "Αφίξεις": row.afikseis || [],
-          "Αποχωρήσεις": row.apoxwriseis || [],
-          "Άδειες": row.adeies || [],
-          "Μεταφορές": row.metafores || []
-        }
-      };
-    });
-    return true;
-  } catch(e) {
-    console.error("Load failed:", e);
-    return false;
-  }
-}
-
-async function loadPrevFromSupabase() {
-  const d = new Date(document.getElementById("date-sel").value);
-  d.setDate(d.getDate()-1);
-  const prevDate = d.toISOString().slice(0,10);
-
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/anafores?koinotita=eq.${encodeURIComponent(KOINOTITA)}&imerominia=eq.${prevDate}&select=vagoni,simera`,
-      { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
-    );
-    const rows = await res.json();
-    return Object.fromEntries(rows.map(r => [r.vagoni, r.simera]));
-  } catch(e) { return {}; }
-}
-let CONFIG = null;
-let state = {}, openVagoni = null, activeTabs = {}, saveTimer = null;
-const CATS = ["Αφίξεις","Αποχωρήσεις","Άδειες","Μεταφορές"];
-
-async function init() {
-  try {
-    const r = await fetch("../../config.json");
-    CONFIG = await r.json();
-  } catch(e) {
-    CONFIG = {
-      "3Δ":[331,332,333,334,335,336,341,342,343,344,345,346,350,215],
-      "3Μ":[311,312,313,314,315,316,321,322,323,324,325,326,212,214],
-      "4Δ":[441,442,443,444,445,446,431,432,433,434,435,436,450,225],
-      "4Μ":[411,412,413,414,415,416,421,422,423,424,425,426,224],
-      "5αρια":[511,512,513,514,515,521,522,523,524,525],
-      "6αρια":[531,532,533,534,535,536,537,538,539]
-    };
-  }
-  document.getElementById("koin-label").textContent = KOINOTITA;
-  document.getElementById("date-sel").value = todayStr();
-  loadDay();
-}
-
-function todayStr() { return new Date().toISOString().slice(0,10); }
-function stateKey() { return "camp_" + KOINOTITA + "|" + document.getElementById("date-sel").value; }
-function prevKey() {
-  const d = new Date(document.getElementById("date-sel").value);
-  d.setDate(d.getDate()-1);
-  return "camp_" + KOINOTITA + "|" + d.toISOString().slice(0,10);
-}
+async function loadFromBackend() { return false; }
+async function loadPrevFromBackend() { return {}; }
 
 async function loadDay() {
   const vagonia = CONFIG[KOINOTITA] || [];
@@ -231,7 +155,7 @@ async function loadDay() {
   vagonia.forEach(v => { if (!activeTabs[v]) activeTabs[v] = "Αφίξεις"; });
 
   // Try Supabase first
-  const loaded = await loadFromSupabase();
+  const loaded = await loadFromBackend();
 
   if (!loaded) {
     // fallback to localStorage
@@ -240,7 +164,7 @@ async function loadDay() {
       state = JSON.parse(saved);
     } else {
       // load prev day from Supabase for xthes
-      const prevData = await loadPrevFromSupabase();
+      const prevData = await loadPrevFromBackend();
       state = { vagonia: {} };
       vagonia.forEach(v => {
         state.vagonia[v] = {
@@ -268,7 +192,7 @@ function autoSave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     localStorage.setItem(stateKey(), JSON.stringify(state));
-    await syncToSupabase();
+    await syncToBackend();
     const pill = document.getElementById("save-pill");
     pill.classList.add("show");
     setTimeout(() => pill.classList.remove("show"), 1800);
