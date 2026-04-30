@@ -73,9 +73,11 @@
   .list-label.show{display:block;}
   .krows{display:flex;flex-direction:column;gap:5px;}
   .krow{display:flex;gap:5px;align-items:center;background:var(--bg);border-radius:var(--rs);padding:7px 8px;}
-  .krow .kname{flex:1;font-size:13px;font-weight:500;color:var(--text);}
-  .krow .kvag{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:2px 8px;white-space:nowrap;}
-  .krow .karr{font-size:12px;color:var(--hint);}
+  .krow .kname{flex:1;font-family:var(--font);font-size:13px;font-weight:500;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:6px 8px;outline:none;}
+  .krow .kname:focus{border-color:var(--accent);}
+  .krow .kvag{font-family:var(--font);font-size:12px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:6px 20px 6px 7px;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237A786E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 5px center;width:76px;}
+  .krow .kvag:focus{border-color:var(--accent);}
+  .krow .karr{font-size:12px;color:var(--hint);flex:0 0 auto;}
   .krow .del{font-size:18px;line-height:1;color:var(--hint);background:none;border:none;cursor:pointer;padding:0 2px;flex:0 0 auto;}
   .krow .del:active{color:var(--danger);}
   .empty-hint{font-size:12px;color:var(--hint);text-align:center;padding:0.5rem 0;display:none;}
@@ -267,16 +269,24 @@ function renderBody(body, v) {
   const listHtml = items.map((item, i) => {
     if (isMeta) {
       return `<div class="krow">
-        <span class="kname">${esc(item.onoma||'—')}</span>
-        <span class="kvag">${item.apo||'?'}</span>
+        <input class="kname" type="text" value="${esc(item.onoma||'')} " placeholder="Όνομα"
+          data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="onoma">
+        <select class="kvag" data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="apo" data-val="${esc(item.apo||'')}">
+          <option value="">από</option>${allOpts}
+        </select>
         <span class="karr">→</span>
-        <span class="kvag">${item.pros||'?'}</span>
+        <select class="kvag" data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="pros" data-val="${esc(item.pros||'')}">
+          <option value="">προς</option>${allOpts}
+        </select>
         <button class="del" data-v="${v}" data-cat="${activeTab}" data-i="${i}">×</button>
       </div>`;
     } else {
       return `<div class="krow">
-        <span class="kname">${esc(item.onoma||'—')}</span>
-        <span class="kvag">${item.vagoni||v}</span>
+        <input class="kname" type="text" value="${esc(item.onoma||'')} " placeholder="Όνομα"
+          data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="onoma">
+        <select class="kvag" data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="vagoni" data-val="${esc(item.vagoni||String(v))}">
+          ${ownOpts(v)}
+        </select>
         <button class="del" data-v="${v}" data-cat="${activeTab}" data-i="${i}">×</button>
       </div>`;
     }
@@ -320,6 +330,27 @@ function renderBody(body, v) {
     setTimeout(() => { const inp = document.getElementById("new-onoma-"+vv); if(inp) inp.focus(); }, 50);
   });
 
+  // bind editable list inputs (kname)
+  body.querySelectorAll("input.kname").forEach(inp => {
+    inp.addEventListener("click", e => e.stopPropagation());
+    inp.addEventListener("input", function() {
+      const vv = parseInt(this.dataset.v);
+      state.vagonia[vv].kiniseis[this.dataset.cat][parseInt(this.dataset.i)][this.dataset.field] = this.value;
+      autoSave();
+    });
+  });
+
+  // bind editable list selects (kvag)
+  body.querySelectorAll("select.kvag").forEach(sel => {
+    sel.value = sel.getAttribute("data-val") || "";
+    sel.addEventListener("click", e => e.stopPropagation());
+    sel.addEventListener("change", function() {
+      const vv = parseInt(this.dataset.v);
+      state.vagonia[vv].kiniseis[this.dataset.cat][parseInt(this.dataset.i)][this.dataset.field] = this.value;
+      autoSave();
+    });
+  });
+
   // bind delete
   body.querySelectorAll(".del").forEach(btn => {
     btn.addEventListener("click", function(e) {
@@ -332,8 +363,8 @@ function renderBody(body, v) {
     });
   });
 
-  // stop propagation on inputs/selects
-  body.querySelectorAll("input,select").forEach(el => el.addEventListener("click", e=>e.stopPropagation()));
+  // stop propagation on new-row inputs/selects
+  body.querySelectorAll("#newrow-"+v+" input, #newrow-"+v+" select").forEach(el => el.addEventListener("click", e=>e.stopPropagation()));
 }
 
 function refreshCardHeader(v) {
