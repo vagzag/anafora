@@ -102,7 +102,11 @@ const sbH = {"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY};
 
 let openCard = null;
 
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function todayStr(){ 
+  const d = new Date();
+  d.setHours(d.getHours()+3); // UTC+3 Greece summer
+  return d.toISOString().slice(0,10); 
+}
 
 async function sbGet(path){
   const r = await fetch(SB_URL+path,{headers:sbH});
@@ -219,26 +223,47 @@ function toggleKCard(k, wrap, rows, allAf, allAp, allAd, allMe){
     return;
   }
 
-  // Vagoni table
-  let html = `<table class="vtable">
-    <tr><th>Βαγόνι</th><th>Χθες</th><th>Σήμερα</th><th>Διαφορά</th></tr>`;
+  const fmt = e=>`${e.epitheto||''} ${e.onoma||''}`.trim();
+
+  // Summary kiniseis
+  let html = '';
+  if(allAf.length||allAp.length||allAd.length||allMe.length) {
+    html += `<div style="background:var(--bg);border-radius:var(--rs);padding:10px;margin-bottom:10px;border:1px solid var(--border);">`;
+    if(allAf.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Αφίξεις (${allAf.length})</div>${allAf.map(e=>`<div class="kinisi-entry">• ${fmt(e)}</div>`).join('')}</div>`;
+    if(allAp.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Αποχωρήσεις (${allAp.length})</div>${allAp.map(e=>`<div class="kinisi-entry">• ${fmt(e)}</div>`).join('')}</div>`;
+    if(allAd.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Άδειες (${allAd.length})</div>${allAd.map(e=>`<div class="kinisi-entry">• ${fmt(e)}</div>`).join('')}</div>`;
+    if(allMe.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Μεταφορές (${allMe.length})</div>${allMe.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">${e.apo||'?'}→${e.pros||'?'}</span></div>`).join('')}</div>`;
+    html += `</div>`;
+  }
+
+  // Per vagoni with kiniseis
   rows.forEach(r => {
     const d = r.simera!==null&&r.xthes!==null ? r.simera-r.xthes : null;
-    const dc = d===null?"":d>0?"pos":d<0?"neg":"";
-    html += `<tr>
-      <td class="vnum-cell">${r.vagoni}</td>
-      <td>${r.xthes??'—'}</td>
-      <td><b>${r.simera??'—'}</b></td>
-      <td class="diff-cell ${dc}">${d===null?"—":d>0?"+"+d:String(d)}</td>
-    </tr>`;
-  });
-  html += `</table>`;
+    const dc = d===null?"zero":d>0?"pos":d<0?"neg":"zero";
+    const ds = d===null?"—":d>0?"+"+d:String(d);
+    const vAf = (r.afikseis||[]).map(fmt).filter(Boolean);
+    const vAp = (r.apoxwriseis||[]).map(fmt).filter(Boolean);
+    const vAd = (r.adeies||[]).map(fmt).filter(Boolean);
+    const vMe = (r.metafores||[]).map(e=>`${fmt(e)} (${e.apo||'?'}→${e.pros||'?'})`).filter(Boolean);
+    const hasK = vAf.length||vAp.length||vAd.length||vMe.length;
 
-  const fmt = e=>`${e.epitheto||''} ${e.onoma||''}`.trim();
-  if(allAf.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Αφίξεις (${allAf.length})</div>${allAf.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
-  if(allAp.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Αποχωρήσεις (${allAp.length})</div>${allAp.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
-  if(allAd.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Άδειες (${allAd.length})</div>${allAd.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
-  if(allMe.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Μεταφορές (${allMe.length})</div>${allMe.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">${e.apo||'?'}→${e.pros||'?'}</span></div>`).join('')}</div>`;
+    html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:6px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:10px;padding:0.625rem 0.875rem;">
+        <span style="font-size:14px;font-weight:600;flex:1;">Βαγόνι ${r.vagoni}</span>
+        <span style="font-size:12px;color:var(--muted);">χθες: <b>${r.xthes??'—'}</b></span>
+        <span style="font-size:16px;font-weight:600;">${r.simera??'—'}</span>
+        <span class="kdiff ${dc}">${ds}</span>
+      </div>`;
+    if(hasK) {
+      html += `<div style="padding:0 0.875rem 0.625rem;border-top:1px solid var(--border);">`;
+      if(vAf.length) html+=`<div class="kinisi-group" style="margin-top:6px;"><div class="kinisi-title">Αφίξεις</div>${vAf.map(n=>`<div class="kinisi-entry">• ${n}</div>`).join('')}</div>`;
+      if(vAp.length) html+=`<div class="kinisi-group" style="margin-top:4px;"><div class="kinisi-title">Αποχωρήσεις</div>${vAp.map(n=>`<div class="kinisi-entry">• ${n}</div>`).join('')}</div>`;
+      if(vAd.length) html+=`<div class="kinisi-group" style="margin-top:4px;"><div class="kinisi-title">Άδειες</div>${vAd.map(n=>`<div class="kinisi-entry">• ${n}</div>`).join('')}</div>`;
+      if(vMe.length) html+=`<div class="kinisi-group" style="margin-top:4px;"><div class="kinisi-title">Μεταφορές</div>${vMe.map(n=>`<div class="kinisi-entry">• ${n}</div>`).join('')}</div>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+  });
 
   body.innerHTML = html;
 }

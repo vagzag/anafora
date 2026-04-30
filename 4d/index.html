@@ -647,7 +647,7 @@ function closeHistory() {
 }
 
 // ── UTILS ──────────────────────────────────────────────────────────────────
-function todayStr() { return new Date().toISOString().slice(0,10); }
+function todayStr() { const d=new Date(); d.setHours(d.getHours()+3); return d.toISOString().slice(0,10); }
 function prevDateStr(d) { const dt=new Date(d); dt.setDate(dt.getDate()-1); return dt.toISOString().slice(0,10); }
 function formatDate(s) { const d=new Date(s); return `${d.getDate()}/${d.getMonth()+1}`; }
 function diffClass(s,x) { if(s===null||s===undefined||s===""||x===null||x===undefined||x==="")return"zero"; const d=parseInt(s)-parseInt(x); return d>0?"pos":d<0?"neg":"zero"; }
