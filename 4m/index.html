@@ -251,16 +251,12 @@ async function loadDay() {
     if (prevRows) prevRows.forEach(r => { prevData[r.vagoni] = r.simera; });
   } catch(e) {}
 
-  // Check localStorage fallback
-  const saved = localStorage.getItem("campF_"+KOINOTITA+"|"+imerominia);
-  if (saved) { state = JSON.parse(saved); }
-  else {
-    state = {vagonia: {}};
-    CONFIG_VAGONIA.forEach(v => {
-      const xthes = prevData[v] !== undefined ? String(prevData[v]) : "";
-      state.vagonia[v] = {simera:"", xthes, kiniseis:{"Αφίξεις":[],"Αποχωρήσεις":[],"Άδειες":[],"Μεταφορές":[]}};
-    });
-  }
+  // No Supabase data — start fresh (ignore localStorage to avoid stale data)
+  state = {vagonia: {}};
+  CONFIG_VAGONIA.forEach(v => {
+    const xthes = prevData[v] !== undefined ? String(prevData[v]) : "";
+    state.vagonia[v] = {simera:"", xthes, kiniseis:{"Αφίξεις":[],"Αποχωρήσεις":[],"Άδειες":[],"Μεταφορές":[]}};
+  });
   CONFIG_VAGONIA.forEach(v => {
     if (!state.vagonia[v]) state.vagonia[v] = {simera:"",xthes:"",kiniseis:{}};
     CATS.forEach(c => { if(!state.vagonia[v].kiniseis[c]) state.vagonia[v].kiniseis[c] = []; });
@@ -275,12 +271,12 @@ function autoSave() {
     const imerominia = document.getElementById("date-sel").value;
     localStorage.setItem("campF_"+KOINOTITA+"|"+imerominia, JSON.stringify(state));
     const rows = CONFIG_VAGONIA.map(v => {
-      const d = state.vagonia[v] || {};
+      const d = state.vagonia[v] || state.vagonia[String(v)] || {};
       return {
         koinotita: KOINOTITA, imerominia,
         vagoni: parseInt(v),
-        simera: d.simera !== "" ? parseInt(d.simera) : null,
-        xthes: d.xthes !== "" ? parseInt(d.xthes) : null,
+        simera: d.simera !== "" && d.simera !== undefined ? parseInt(d.simera) : null,
+        xthes: d.xthes !== "" && d.xthes !== undefined ? parseInt(d.xthes) : null,
         afikseis: d.kiniseis?.["Αφίξεις"] || [],
         apoxwriseis: d.kiniseis?.["Αποχωρήσεις"] || [],
         adeies: d.kiniseis?.["Άδειες"] || [],
@@ -288,7 +284,9 @@ function autoSave() {
         updated_at: new Date().toISOString()
       };
     });
-    await sbUpsert("anafores", rows);
+    // Only upsert rows that have data
+    const rowsWithData = rows.filter(r => r.simera !== null || r.afikseis.length || r.apoxwriseis.length || r.adeies.length || r.metafores.length);
+    if (rowsWithData.length > 0) await sbUpsert("anafores", rowsWithData);
     const pill = document.getElementById("save-pill");
     pill.classList.add("show");
     setTimeout(() => pill.classList.remove("show"), 1800);
