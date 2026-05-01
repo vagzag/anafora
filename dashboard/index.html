@@ -85,11 +85,7 @@
   </div>
 </div>
 
-<div class="total-bar" id="total-bar" style="display:none;">
-  <div><div class="n" id="t-xthes">—</div><div class="l">χθες</div></div>
-  <div><div class="n" id="t-simera">0</div><div class="l">σήμερα</div></div>
-  <div><div class="diff" id="t-diff">—</div><div class="l">διαφορά</div></div>
-</div>
+<div class="total-bar" id="total-bar" style="display:none;background:var(--accent);color:#fff;"></div>
 
 <div class="sec-label">Κοινότητες</div>
 <div id="cards-container"><div class="loading">Φόρτωση...</div></div>
@@ -106,6 +102,23 @@ function todayStr(){
   const d = new Date();
   d.setHours(d.getHours()+3); // UTC+3 Greece summer
   return d.toISOString().slice(0,10); 
+}
+
+function calcRowDunamis(row) {
+  if (row.xthes === null) return null;
+  const af = (row.afikseis||[]).length;
+  const ap = (row.apoxwriseis||[]).length;
+  const v = String(row.vagoni);
+  const metaIn = (row.metafores||[]).filter(m=>String(m.pros)===v).length;
+  const metaOut = (row.metafores||[]).filter(m=>String(m.apo)===v).length;
+  return row.xthes + af - ap + metaIn - metaOut;
+}
+
+function dunamisIcon(dunamis, simera) {
+  if (dunamis === null || simera === null) return '';
+  return dunamis === simera 
+    ? '<span style="color:#2D6A4F;font-weight:600;"> ✓</span>'
+    : `<span style="color:#C0392B;font-weight:600;"> ⚠(δύν:${dunamis})</span>`;
 }
 
 async function sbGet(path){
@@ -137,15 +150,34 @@ async function loadAll(){
     });
   });
 
-  // Total bar
+  // Totals incl dunamis
+  let totDunamis = 0, hasDunamis = false;
+  let totAf=0, totAp=0, totAd=0, totMe=0;
+  Object.values(byK).forEach(krows => {
+    krows.forEach(r => {
+      const d = calcRowDunamis(r);
+      if (d !== null) { totDunamis += d; hasDunamis = true; }
+      totAf += (r.afikseis||[]).length;
+      totAp += (r.apoxwriseis||[]).length;
+      totAd += (r.adeies||[]).length;
+      totMe += (r.metafores||[]).length;
+    });
+  });
+
   const tBar = document.getElementById("total-bar");
-  tBar.style.display="grid";
-  document.getElementById("t-simera").textContent = totSimera;
-  document.getElementById("t-xthes").textContent = hasXthes ? totXthes : "—";
+  tBar.style.display="block";
   const tDiff = hasXthes ? totSimera-totXthes : null;
-  const tDiffEl = document.getElementById("t-diff");
-  tDiffEl.textContent = tDiff!==null ? (tDiff>0?"+"+tDiff:String(tDiff)) : "—";
-  tDiffEl.style.color = tDiff>0?"#E8F4EE":tDiff<0?"#FDEDEC":"rgba(255,255,255,0.7)";
+  const tDiffStr = tDiff!==null ? (tDiff>0?"+"+tDiff:String(tDiff)) : "—";
+  const dunIcon = hasDunamis ? (totDunamis===totSimera?'<span style="opacity:0.9"> ✓</span>':'<span style="opacity:0.9"> ⚠</span>') : '';
+  const kinStr = [totAf&&`Αφίξεις:${totAf}`, totAp&&`Αποχωρήσεις:${totAp}`, totAd&&`Άδειες:${totAd}`, totMe&&`Μεταφορές:${totMe}`].filter(Boolean).join('  ·  ');
+
+  tBar.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center;padding:1rem 1.25rem;">
+    <div><div class="n">${hasXthes?totXthes:"—"}</div><div class="l">χθες</div></div>
+    <div><div class="n">${hasDunamis?totDunamis:"—"}${dunIcon}</div><div class="l">δύναμη</div></div>
+    <div><div class="n">${totSimera}</div><div class="l">σήμερα</div></div>
+    <div><div class="n" style="font-size:20px;">${tDiffStr}</div><div class="l">διαφορά</div></div>
+  </div>
+  ${kinStr?`<div style="text-align:center;padding:0 1rem 0.75rem;font-size:12px;opacity:0.85;">${kinStr}</div>`:''}`;
 
   // Cards
   cont.innerHTML = "";
@@ -169,8 +201,16 @@ function makeKCard(koinotita, rows) {
   const wrap = document.createElement("div");
   wrap.className = "kcard";
 
-  const statusClass = !hasData?"empty":diff!==null&&diff>=0?"ok":"warn";
-  const statusText = !hasData?"Δεν έχει συμπληρώσει":diff!==null&&diff>=0?"✓ Συμπληρώθηκε":"⚠ Αρνητική διαφορά";
+  // Dunamis for koinotita
+  let kDunamis = 0, hasKDunamis = false;
+  rows.forEach(r => { const d=calcRowDunamis(r); if(d!==null){kDunamis+=d;hasKDunamis=true;} });
+  const dunOk = hasKDunamis && kDunamis===simera;
+  const dunWarn = hasKDunamis && kDunamis!==simera;
+
+  const kAf = allAf.length, kAp = allAp.length, kAd = allAd.length, kMe = allMe.length;
+  const kinLine = [kAf&&`Αφ:${kAf}`, kAp&&`Απ:${kAp}`, kAd&&`Άδ:${kAd}`, kMe&&`Μτ:${kMe}`].filter(Boolean).join(' · ');
+
+  const statusClass = !hasData?"empty":dunOk?"ok":dunWarn?"warn":"ok";
   const diffClass = diff===null?"zero":diff>0?"pos":diff<0?"neg":"zero";
   const diffText = diff===null?"—":diff>0?"+"+diff:String(diff);
 
@@ -178,12 +218,17 @@ function makeKCard(koinotita, rows) {
   top.className = "ktop";
   top.innerHTML = `
     <span class="kname">${koinotita}</span>
-    <span class="kstatus ${statusClass}">${statusText}</span>
+    ${!hasData?'<span class="kstatus empty">Δεν έχει συμπληρώσει</span>':''}
     ${hasData?`
-    <div class="knums">
-      <span class="kn">${simera}</span>
-      <span class="kdiff ${diffClass}">${diffText}</span>
-    </div>`:""}
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+      <div class="knums">
+        ${hasKDunamis?`<span style="font-size:11px;color:var(--muted);">δύν:${kDunamis}</span>`:''}
+        <span class="kn">${simera}</span>
+        <span class="kdiff ${diffClass}">${diffText}</span>
+        ${dunOk?'<span style="color:#2D6A4F;font-size:12px;">✓</span>':dunWarn?`<span style="color:#C0392B;font-size:12px;">⚠</span>`:''}
+      </div>
+      ${kinLine?`<div style="font-size:11px;color:var(--muted);">${kinLine}</div>`:''}
+    </div>`:''}
     <span class="chev" id="chev-${koinotita}">▼</span>`;
 
   top.addEventListener("click",()=>toggleKCard(koinotita, wrap, rows, allAf, allAp, allAd, allMe));

@@ -298,6 +298,7 @@ function renderAll() {
   const cont = document.getElementById("vagonia-container");
   cont.innerHTML = "";
   CONFIG_VAGONIA.forEach(v => cont.appendChild(makeCard(v)));
+  setTimeout(() => CONFIG_VAGONIA.forEach(v => updateDunamis(v)), 100);
 }
 
 function allVagoniaOpts() {
@@ -320,6 +321,7 @@ function makeCard(v) {
     <span class="xthes-lbl">χθες: <b>${d.xthes!==""?d.xthes:"—"}</b></span>
     <input class="n-input" type="number" min="0" inputmode="numeric" placeholder="—" value="${d.simera}" id="inp-${v}">
     <span class="dbadge ${diffClass(d.simera,d.xthes)}" id="diff-${v}">${diffText(d.simera,d.xthes)}</span>
+    <span id="dunamis-${v}" style="font-size:11px;color:var(--muted);"></span>
     <span class="chev ${isOpen?"open":""}" id="chev-${v}">▼</span>`;
 
   top.querySelector(".n-input").addEventListener("input", function(e) {
@@ -363,16 +365,23 @@ function renderBody(body, v) {
         <select id="new-pros-${v}"><option value="">προς</option>${allOpts}</select>
       </div>
       <div class="err-msg" id="err-${v}">Συμπλήρωσε το επώνυμο</div>
-      <button class="confirm-btn" data-v="${v}" data-cat="${activeTab}">Καταχώριση</button>
+      <button class="confirm-btn" data-v="${v}" data-cat="${activeTab}">Καταχώρηση</button>
     </div>`;
   } else {
+    const isAdeia = activeTab === "Άδειες";
     newHtml = `<div class="new-area">
       <div class="new-name-row">
         <input type="text" placeholder="Επώνυμο" id="new-ep-${v}">
         <input type="text" placeholder="Όνομα" id="new-on-${v}">
       </div>
+      ${isAdeia ? `<div class="new-vag-row">
+        <select id="new-adeia-type-${v}" style="width:100%;font-family:var(--font);font-size:13px;color:var(--text);background:var(--surface);border:1.5px solid var(--border-strong);border-radius:var(--rs);padding:8px 10px;outline:none;">
+          <option value="out">Σε άδεια</option>
+          <option value="in">Επιστροφή από άδεια</option>
+        </select>
+      </div>` : ''}
       <div class="err-msg" id="err-${v}">Συμπλήρωσε το επώνυμο</div>
-      <button class="confirm-btn" data-v="${v}" data-cat="${activeTab}">Καταχώριση</button>
+      <button class="confirm-btn" data-v="${v}" data-cat="${activeTab}">Καταχώρηση</button>
     </div>`;
   }
 
@@ -483,6 +492,10 @@ function doAdd(v, cat, body) {
     const apo = document.getElementById("new-apo-"+v).value;
     const pros = document.getElementById("new-pros-"+v).value;
     state.vagonia[v].kiniseis[cat].push({epitheto, onoma, apo, pros});
+  } else if (cat === "Άδειες") {
+    const typeEl = document.getElementById("new-adeia-type-"+v);
+    const adeiaType = typeEl ? typeEl.value : "out";
+    state.vagonia[v].kiniseis[cat].push({epitheto, onoma, type: adeiaType});
   } else {
     state.vagonia[v].kiniseis[cat].push({epitheto, onoma});
   }
@@ -519,7 +532,22 @@ function updateSimera(v, val) {
   state.vagonia[v].simera = val;
   const badge = document.getElementById("diff-"+v);
   if (badge) { badge.textContent = diffText(val, state.vagonia[v].xthes); badge.className = "dbadge "+diffClass(val, state.vagonia[v].xthes); }
+  updateDunamis(v);
   updateSummary(); autoSave();
+}
+
+function updateDunamis(v) {
+  const el = document.getElementById("dunamis-"+v);
+  if (!el) return;
+  const d = calcDunamis(v);
+  const simera = state.vagonia[v]?.simera;
+  if (d === null || simera === "") { el.textContent = ""; return; }
+  const s = parseInt(simera);
+  if (d === s) {
+    el.innerHTML = '<span style="color:var(--accent);font-size:11px;">δύν:'+d+' ✓</span>';
+  } else {
+    el.innerHTML = '<span style="color:var(--danger);font-size:11px;">δύν:'+d+' ⚠</span>';
+  }
 }
 
 function updateSummary() {
@@ -650,6 +678,18 @@ function closeHistory() {
 function todayStr() { const d=new Date(); d.setHours(d.getHours()+3); return d.toISOString().slice(0,10); }
 function prevDateStr(d) { const dt=new Date(d); dt.setDate(dt.getDate()-1); return dt.toISOString().slice(0,10); }
 function formatDate(s) { const d=new Date(s); return `${d.getDate()}/${d.getMonth()+1}`; }
+function calcDunamis(v) {
+  const d = state.vagonia[v] || {};
+  const xthes = d.xthes !== "" && d.xthes !== undefined ? parseInt(d.xthes) : null;
+  if (xthes === null) return null;
+  const af = (d.kiniseis?.["Αφίξεις"] || []).length;
+  const ap = (d.kiniseis?.["Αποχωρήσεις"] || []).length;
+  const allMeta = d.kiniseis?.["Μεταφορές"] || [];
+  const metaIn = allMeta.filter(m => String(m.pros) === String(v)).length;
+  const metaOut = allMeta.filter(m => String(m.apo) === String(v)).length;
+  return xthes + af - ap + metaIn - metaOut;
+}
+
 function diffClass(s,x) { if(s===null||s===undefined||s===""||x===null||x===undefined||x==="")return"zero"; const d=parseInt(s)-parseInt(x); return d>0?"pos":d<0?"neg":"zero"; }
 function diffText(s,x) { if(s===null||s===undefined||s===""||x===null||x===undefined||x==="")return"—"; const d=parseInt(s)-parseInt(x); return d>0?"+"+d:String(d); }
 function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
