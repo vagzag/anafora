@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Config Βαγονιών</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+  :root {
+    --bg:#F5F4F0;--surface:#FFF;--border:#E2E0D8;--border-strong:#C8C5BA;
+    --text:#1A1916;--muted:#7A786E;--hint:#A8A69E;
+    --accent:#2D6A4F;--accent-bg:#E8F4EE;
+    --danger:#C0392B;--rs:8px;--font:'DM Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 1.25rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;}
+  .header h1{font-size:17px;font-weight:600;}
+  .header-right{display:flex;gap:8px;align-items:center;}
+  .save-btn{font-family:var(--font);font-size:14px;font-weight:600;padding:8px 20px;border-radius:var(--rs);border:none;background:var(--accent);color:#fff;cursor:pointer;}
+  .save-btn:active{opacity:0.85;}
+  .save-btn:disabled{opacity:0.5;cursor:default;}
+  .status{font-size:12px;color:var(--muted);}
+
+  .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;padding:1rem;}
+
+  .col{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
+  .col-header{padding:0.75rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .col-title{font-size:14px;font-weight:600;}
+  .col-count{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--accent-bg);color:var(--accent);}
+  .col-apothiki .col-count{background:var(--bg);color:var(--muted);border:1px solid var(--border);}
+
+  .drop-zone{flex:1;min-height:120px;padding:8px;display:flex;flex-direction:column;gap:6px;transition:background 0.15s;}
+  .drop-zone.drag-over{background:var(--accent-bg);}
+
+  .vagoni-chip{background:var(--bg);border:1px solid var(--border-strong);border-radius:6px;padding:6px 10px;font-size:13px;font-weight:600;cursor:grab;user-select:none;display:flex;align-items:center;justify-content:space-between;transition:box-shadow 0.15s,opacity 0.15s;}
+  .vagoni-chip:active{cursor:grabbing;}
+  .vagoni-chip.dragging{opacity:0.4;}
+  .vagoni-chip.drag-placeholder{background:var(--accent-bg);border:1.5px dashed var(--accent);color:transparent;}
+
+  .add-row{padding:8px;border-top:1px solid var(--border);display:flex;gap:6px;}
+  .add-input{flex:1;font-family:var(--font);font-size:13px;border:1.5px solid var(--border-strong);border-radius:6px;padding:6px 8px;outline:none;background:var(--bg);}
+  .add-input:focus{border-color:var(--accent);}
+  .add-btn{font-family:var(--font);font-size:13px;font-weight:600;padding:6px 12px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;}
+
+  .loading{text-align:center;padding:3rem;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Config Βαγονιών</h1>
+  <div class="header-right">
+    <span class="status" id="status"></span>
+    <button class="save-btn" id="save-btn" onclick="saveAll()">Αποθήκευση</button>
+  </div>
+</div>
+
+<div id="board" class="board"><div class="loading">Φόρτωση...</div></div>
+
+<script>
+const SB_URL = "https://neyybmgplyxnkangafkf.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5leXlibWdwbHl4bmthbmdhZmtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NTQ4NjQsImV4cCI6MjA5MzEzMDg2NH0.NqyrMsDh52GGn2DRFmj9IecMFpPIzFFfPByLg4fQBKg";
+const SBH = {"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"};
+
+const ORDER = ["4Δ","4Μ","3Μ","3Δ","5αρια","6αρια"];
+
+// state: { "4Δ": [441,442,...], ..., "__apothiki": [...] }
+let state = {};
+let dragEl = null, dragFrom = null;
+
+async function load() {
+  const r = await fetch(SB_URL + "/rest/v1/config?select=koinotita,vagonia", {headers: SBH});
+  const rows = await r.json();
+  ORDER.forEach(k => state[k] = []);
+  state["__apothiki"] = [];
+  if (rows && rows.length) {
+    rows.forEach(r => { if (state[r.koinotita] !== undefined) state[r.koinotita] = r.vagonia || []; });
+  }
+  render();
+}
+
+function render() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  [...ORDER, "__apothiki"].forEach(k => board.appendChild(makeCol(k)));
+}
+
+function makeCol(k) {
+  const isApothiki = k === "__apothiki";
+  const label = isApothiki ? "Αποθήκη" : k;
+  const items = state[k] || [];
+
+  const col = document.createElement("div");
+  col.className = "col" + (isApothiki ? " col-apothiki" : "");
+
+  col.innerHTML = `
+    <div class="col-header">
+      <span class="col-title">${label}</span>
+      <span class="col-count" id="count-${k}">${items.length}</span>
+    </div>
+    <div class="drop-zone" id="zone-${k}" data-col="${k}"></div>
+    <div class="add-row">
+      <input class="add-input" type="number" placeholder="Νέο βαγόνι" id="inp-${k}" 
+        onkeydown="if(event.key==='Enter') addVagoni('${k}')">
+      <button class="add-btn" onclick="addVagoni('${k}')">+</button>
+    </div>`;
+
+  const zone = col.querySelector(".drop-zone");
+  items.forEach(v => zone.appendChild(makeChip(v, k)));
+  setupZone(zone);
+  return col;
+}
+
+function makeChip(v, col) {
+  const chip = document.createElement("div");
+  chip.className = "vagoni-chip";
+  chip.textContent = v;
+  chip.draggable = true;
+  chip.dataset.vagoni = v;
+  chip.dataset.col = col;
+
+  chip.addEventListener("dragstart", e => {
+    dragEl = chip;
+    dragFrom = col;
+    setTimeout(() => chip.classList.add("dragging"), 0);
+    e.dataTransfer.effectAllowed = "move";
+  });
+  chip.addEventListener("dragend", () => {
+    chip.classList.remove("dragging");
+    dragEl = null; dragFrom = null;
+    document.querySelectorAll(".drag-over").forEach(z => z.classList.remove("drag-over"));
+  });
+
+  // Touch support
+  chip.addEventListener("touchstart", touchStart, {passive:true});
+  chip.addEventListener("touchmove", touchMove, {passive:false});
+  chip.addEventListener("touchend", touchEnd);
+
+  return chip;
+}
+
+function setupZone(zone) {
+  zone.addEventListener("dragover", e => {
+    e.preventDefault();
+    zone.classList.add("drag-over");
+  });
+  zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
+  zone.addEventListener("drop", e => {
+    e.preventDefault();
+    zone.classList.remove("drag-over");
+    if (!dragEl) return;
+    const toCol = zone.dataset.col;
+    const v = parseInt(dragEl.dataset.vagoni);
+    // Remove from source
+    state[dragFrom] = state[dragFrom].filter(x => x !== v);
+    // Add to target if not already there
+    if (!state[toCol].includes(v)) state[toCol].push(v);
+    render();
+  });
+}
+
+function addVagoni(col) {
+  const inp = document.getElementById("inp-" + col);
+  const v = parseInt(inp.value);
+  if (!v || isNaN(v)) return;
+  // Remove from wherever it is
+  Object.keys(state).forEach(k => { state[k] = state[k].filter(x => x !== v); });
+  state[col].push(v);
+  inp.value = "";
+  render();
+  setStatus("Μη αποθηκευμένες αλλαγές");
+}
+
+async function saveAll() {
+  const btn = document.getElementById("save-btn");
+  btn.disabled = true;
+  setStatus("Αποθήκευση...");
+
+  const rows = ORDER.map(k => ({
+    koinotita: k,
+    vagonia: state[k],
+    updated_at: new Date().toISOString()
+  }));
+
+  const r = await fetch(SB_URL + "/rest/v1/config?on_conflict=koinotita", {
+    method: "POST",
+    headers: {...SBH, "Prefer": "resolution=merge-duplicates"},
+    body: JSON.stringify(rows)
+  });
+
+  btn.disabled = false;
+  if (r.ok) {
+    setStatus("✓ Αποθηκεύτηκε");
+    setTimeout(() => setStatus(""), 3000);
+  } else {
+    setStatus("❌ Σφάλμα αποθήκευσης");
+  }
+}
+
+function setStatus(msg) {
+  document.getElementById("status").textContent = msg;
+}
+
+// ── TOUCH DRAG ──────────────────────────────────────────────────────────────
+let touchChip = null, touchCol = null, touchClone = null;
+
+function touchStart(e) {
+  touchChip = e.currentTarget;
+  touchCol = touchChip.dataset.col;
+  touchClone = touchChip.cloneNode(true);
+  touchClone.style.cssText = `position:fixed;opacity:0.7;pointer-events:none;z-index:9999;width:${touchChip.offsetWidth}px;`;
+  document.body.appendChild(touchClone);
+}
+
+function touchMove(e) {
+  e.preventDefault();
+  const t = e.touches[0];
+  if (touchClone) {
+    touchClone.style.left = (t.clientX - 40) + "px";
+    touchClone.style.top = (t.clientY - 20) + "px";
+  }
+  document.querySelectorAll(".drag-over").forEach(z => z.classList.remove("drag-over"));
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const zone = el?.closest(".drop-zone");
+  if (zone) zone.classList.add("drag-over");
+}
+
+function touchEnd(e) {
+  if (touchClone) { touchClone.remove(); touchClone = null; }
+  document.querySelectorAll(".drag-over").forEach(z => z.classList.remove("drag-over"));
+  const t = e.changedTouches[0];
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const zone = el?.closest(".drop-zone");
+  if (zone && touchChip) {
+    const toCol = zone.dataset.col;
+    const v = parseInt(touchChip.dataset.vagoni);
+    state[touchCol] = state[touchCol].filter(x => x !== v);
+    if (!state[toCol].includes(v)) state[toCol].push(v);
+    render();
+  }
+  touchChip = null; touchCol = null;
+}
+
+load();
+</script>
+</body>
+</html>
