@@ -136,6 +136,7 @@
   <div class="stat"><div class="n" id="s-simera">0</div><div class="l">σήμερα</div></div>
   <div class="stat" id="card-diff"><div class="n" id="s-diff">—</div><div class="l">διαφορά</div></div>
 </div>
+<div id="summary-kiniseis" style="display:none;padding:0 1rem 0.75rem;display:flex;gap:16px;flex-wrap:wrap;"></div>
 
 <div class="sec-label">Βαγόνια</div>
 <div id="vagonia-container"><div class="loading">Φόρτωση βαγονιών...</div></div>
@@ -420,7 +421,7 @@ function renderBody(body, v) {
   body.innerHTML = `
     <div class="tabs">${tabsHtml}</div>
     ${newHtml}
-    <div class="list-label${items.length>0?" show":""}" id="listlabel-${v}">Καταχωρημένες</div>
+    <div class="list-label${items.length>0?" show":""}" id="listlabel-${v}">Καταχωρημένες ${activeTab}</div>
     <div class="krows">${listHtml}</div>`;
 
   body.querySelectorAll("select[data-val]").forEach(s => s.value = s.getAttribute("data-val"));
@@ -552,9 +553,14 @@ function updateDunamis(v) {
 
 function updateSummary() {
   let tot=0, totX=0, hasX=false;
+  let totAf=0, totAp=0, totAd=0, totMe=0;
   Object.values(state.vagonia||{}).forEach(d => {
     if (d.simera!=="") tot += parseInt(d.simera)||0;
     if (d.xthes!=="") { totX += parseInt(d.xthes)||0; hasX=true; }
+    totAf += (d.kiniseis?.["Αφίξεις"]||[]).length;
+    totAp += (d.kiniseis?.["Αποχωρήσεις"]||[]).length;
+    totAd += (d.kiniseis?.["Άδειες"]||[]).length;
+    totMe += (d.kiniseis?.["Μεταφορές"]||[]).length;
   });
   document.getElementById("s-simera").textContent = tot;
   document.getElementById("s-xthes").textContent = hasX ? totX : "—";
@@ -562,6 +568,17 @@ function updateSummary() {
   const el = document.getElementById("s-diff"), card = document.getElementById("card-diff");
   if (diff===null) { el.textContent="—"; card.className="stat"; }
   else { el.textContent=diff>0?"+"+diff:String(diff); card.className="stat "+(diff>0?"pos":diff<0?"neg":""); }
+
+  // Kiniseis counts
+  const kin = document.getElementById("summary-kiniseis");
+  const parts = [
+    totAf>0 ? `<span style="font-size:12px;color:var(--muted);">Αφίξεις: <b style="color:var(--text);">${totAf}</b></span>` : "",
+    totAp>0 ? `<span style="font-size:12px;color:var(--muted);">Αποχωρήσεις: <b style="color:var(--text);">${totAp}</b></span>` : "",
+    totAd>0 ? `<span style="font-size:12px;color:var(--muted);">Άδειες: <b style="color:var(--text);">${totAd}</b></span>` : "",
+    totMe>0 ? `<span style="font-size:12px;color:var(--muted);">Μεταφορές: <b style="color:var(--text);">${totMe}</b></span>` : "",
+  ].filter(Boolean);
+  if (parts.length) { kin.innerHTML = parts.join(""); kin.style.display="flex"; }
+  else { kin.innerHTML=""; kin.style.display="none"; }
 }
 
 // ── HISTORY ────────────────────────────────────────────────────────────────
@@ -685,8 +702,9 @@ function calcDunamis(v) {
   const af = (d.kiniseis?.["Αφίξεις"] || []).length;
   const ap = (d.kiniseis?.["Αποχωρήσεις"] || []).length;
   const allMeta = d.kiniseis?.["Μεταφορές"] || [];
-  const metaIn = allMeta.filter(m => String(m.pros) === String(v)).length;
-  const metaOut = allMeta.filter(m => String(m.apo) === String(v)).length;
+  const sv = String(v);
+  const metaIn = allMeta.filter(m => String(m.pros) === sv).length;
+  const metaOut = allMeta.filter(m => String(m.apo) === sv).length;
   return xthes + af - ap + metaIn - metaOut;
 }
 

@@ -25,7 +25,6 @@
   .refresh-btn{font-family:var(--font);font-size:13px;padding:7px 14px;border-radius:var(--rs);border:1px solid var(--border-strong);background:var(--surface);color:var(--muted);cursor:pointer;}
   .refresh-btn:active{background:var(--bg);}
 
-  /* TOTAL BAR */
   .total-bar{background:var(--accent);color:#fff;padding:1rem 1.25rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;}
   .total-bar .n{font-size:26px;font-weight:600;letter-spacing:-0.02em;}
   .total-bar .l{font-size:11px;opacity:0.8;margin-top:2px;}
@@ -33,7 +32,6 @@
 
   .sec-label{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);padding:0.75rem 1rem 0.4rem;}
 
-  /* COMMUNITY CARD */
   .kcard{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:6px;overflow:hidden;}
   .ktop{display:flex;align-items:center;gap:10px;padding:0.875rem 1rem;cursor:pointer;}
   .kname{font-size:16px;font-weight:600;flex:1;}
@@ -50,20 +48,9 @@
   .chev{color:var(--hint);font-size:11px;transition:transform 0.25s;}
   .chev.open{transform:rotate(180deg);}
 
-  /* COMMUNITY DETAIL */
   .kbody{border-top:1px solid var(--border);display:none;padding:0.875rem 1rem;}
   .kbody.open{display:block;}
 
-  /* VAGONI TABLE */
-  .vtable{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:0.75rem;}
-  .vtable th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);}
-  .vtable td{padding:5px 6px;border-bottom:1px solid var(--border);}
-  .vtable tr:last-child td{border-bottom:none;}
-  .vnum-cell{font-weight:600;}
-  .diff-cell.pos{color:var(--accent);font-weight:600;}
-  .diff-cell.neg{color:var(--danger);font-weight:600;}
-
-  /* KINISEIS */
   .kinisi-group{margin-top:0.5rem;}
   .kinisi-title{font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--hint);margin-bottom:4px;}
   .kinisi-entry{font-size:13px;padding:2px 0;color:var(--text);}
@@ -100,7 +87,7 @@ let openCard = null;
 
 function todayStr(){ 
   const d = new Date();
-  d.setHours(d.getHours()+3); // UTC+3 Greece summer
+  d.setHours(d.getHours()+3);
   return d.toISOString().slice(0,10); 
 }
 
@@ -112,13 +99,6 @@ function calcRowDunamis(row) {
   const metaIn = (row.metafores||[]).filter(m=>String(m.pros)===v).length;
   const metaOut = (row.metafores||[]).filter(m=>String(m.apo)===v).length;
   return row.xthes + af - ap + metaIn - metaOut;
-}
-
-function dunamisIcon(dunamis, simera) {
-  if (dunamis === null || simera === null) return '';
-  return dunamis === simera 
-    ? '<span style="color:#2D6A4F;font-weight:600;"> ✓</span>'
-    : `<span style="color:#C0392B;font-weight:600;"> ⚠(δύν:${dunamis})</span>`;
 }
 
 async function sbGet(path){
@@ -136,31 +116,24 @@ async function loadAll(){
     `/rest/v1/anafores?imerominia=eq.${date}&select=*&order=koinotita,vagoni`
   );
 
-  // Group by koinotita
   const byK = {};
   KOINOTITES.forEach(k => byK[k] = []);
   (rows||[]).forEach(r => { if(byK[r.koinotita]) byK[r.koinotita].push(r); });
 
-  // Totals
   let totSimera=0, totXthes=0, hasXthes=false;
-  Object.values(byK).forEach(rows => {
-    rows.forEach(r => {
-      if(r.simera!==null) totSimera+=r.simera;
-      if(r.xthes!==null){ totXthes+=r.xthes; hasXthes=true; }
-    });
-  });
-
-  // Totals incl dunamis
-  let totDunamis = 0, hasDunamis = false;
+  let totDunamis=0, hasDunamis=false;
   let totAf=0, totAp=0, totAd=0, totMe=0;
+
   Object.values(byK).forEach(krows => {
     krows.forEach(r => {
+      if(r.simera!==null) totSimera+=r.simera;
+      if(r.xthes!==null){ totXthes+=r.xthes; hasXthes=true; }
       const d = calcRowDunamis(r);
-      if (d !== null) { totDunamis += d; hasDunamis = true; }
-      totAf += (r.afikseis||[]).length;
-      totAp += (r.apoxwriseis||[]).length;
-      totAd += (r.adeies||[]).length;
-      totMe += (r.metafores||[]).length;
+      if(d!==null){ totDunamis+=d; hasDunamis=true; }
+      totAf+=(r.afikseis||[]).length;
+      totAp+=(r.apoxwriseis||[]).length;
+      totAd+=(r.adeies||[]).length;
+      totMe+=(r.metafores||[]).length;
     });
   });
 
@@ -168,7 +141,7 @@ async function loadAll(){
   tBar.style.display="block";
   const tDiff = hasXthes ? totSimera-totXthes : null;
   const tDiffStr = tDiff!==null ? (tDiff>0?"+"+tDiff:String(tDiff)) : "—";
-  const dunIcon = hasDunamis ? (totDunamis===totSimera?'<span style="opacity:0.9"> ✓</span>':'<span style="opacity:0.9"> ⚠</span>') : '';
+  const dunIcon = hasDunamis ? (totDunamis===totSimera?' ✓':' ⚠') : '';
   tBar.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center;padding:1rem 1.25rem 0.5rem;">
     <div><div class="n">${hasXthes?totXthes:"—"}</div><div class="l">χθες</div></div>
     <div><div class="n">${hasDunamis?totDunamis:"—"}${dunIcon}</div><div class="l">δύναμη</div></div>
@@ -182,7 +155,6 @@ async function loadAll(){
     <div><div style="font-size:16px;font-weight:600;">${totMe}</div><div style="font-size:10px;opacity:0.75;">Μεταφορές</div></div>
   </div>`;
 
-  // Cards
   cont.innerHTML = "";
   KOINOTITES.forEach(k => {
     cont.appendChild(makeKCard(k, byK[k]));
@@ -201,21 +173,19 @@ function makeKCard(koinotita, rows) {
   const allAd = rows.flatMap(r=>(r.adeies||[]).map(e=>({...e,vagoni:r.vagoni})));
   const allMe = rows.flatMap(r=>(r.metafores||[]).map(e=>({...e,vagoni:r.vagoni})));
 
-  const wrap = document.createElement("div");
-  wrap.className = "kcard";
-
-  // Dunamis for koinotita
-  let kDunamis = 0, hasKDunamis = false;
+  let kDunamis=0, hasKDunamis=false;
   rows.forEach(r => { const d=calcRowDunamis(r); if(d!==null){kDunamis+=d;hasKDunamis=true;} });
   const dunOk = hasKDunamis && kDunamis===simera;
   const dunWarn = hasKDunamis && kDunamis!==simera;
 
-  const kAf = allAf.length, kAp = allAp.length, kAd = allAd.length, kMe = allMe.length;
+  const kAf=allAf.length, kAp=allAp.length, kAd=allAd.length, kMe=allMe.length;
   const kinLine = [kAf&&`Αφ:${kAf}`, kAp&&`Απ:${kAp}`, kAd&&`Άδ:${kAd}`, kMe&&`Μτ:${kMe}`].filter(Boolean).join(' · ');
 
-  const statusClass = !hasData?"empty":dunOk?"ok":dunWarn?"warn":"ok";
   const diffClass = diff===null?"zero":diff>0?"pos":diff<0?"neg":"zero";
   const diffText = diff===null?"—":diff>0?"+"+diff:String(diff);
+
+  const wrap = document.createElement("div");
+  wrap.className = "kcard";
 
   const top = document.createElement("div");
   top.className = "ktop";
@@ -225,10 +195,11 @@ function makeKCard(koinotita, rows) {
     ${hasData?`
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
       <div class="knums">
+        ${hasX?`<span style="font-size:11px;color:var(--muted);">χθες:${xthes}</span>`:''}
         ${hasKDunamis?`<span style="font-size:11px;color:var(--muted);">δύν:${kDunamis}</span>`:''}
         <span class="kn">${simera}</span>
         <span class="kdiff ${diffClass}">${diffText}</span>
-        ${dunOk?'<span style="color:#2D6A4F;font-size:12px;">✓</span>':dunWarn?`<span style="color:#C0392B;font-size:12px;">⚠</span>`:''}
+        ${dunOk?'<span style="color:#2D6A4F;font-size:12px;">✓</span>':dunWarn?'<span style="color:#C0392B;font-size:12px;">⚠</span>':''}
       </div>
       ${kinLine?`<div style="font-size:11px;color:var(--muted);">${kinLine}</div>`:''}
     </div>`:''}
@@ -271,28 +242,28 @@ function toggleKCard(k, wrap, rows, allAf, allAp, allAd, allMe){
     return;
   }
 
-  const fmt = e=>`${e.epitheto||''} ${e.onoma||''}`.trim();
+  // fmt: "Επώνυμο Όνομα - βαγόνι"
+  const fmt = e=>`${e.epitheto||''} ${e.onoma||''}`.trim() + ` - ${e.vagoni}`;
 
-  // Summary kiniseis
   let html = '';
   if(allAf.length||allAp.length||allAd.length||allMe.length) {
     html += `<div style="background:var(--bg);border-radius:var(--rs);padding:10px;margin-bottom:10px;border:1px solid var(--border);">`;
     if(allAf.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Αφίξεις (${allAf.length})</div>${allAf.map(e=>`<div class="kinisi-entry">• ${fmt(e)}</div>`).join('')}</div>`;
     if(allAp.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Αποχωρήσεις (${allAp.length})</div>${allAp.map(e=>`<div class="kinisi-entry">• ${fmt(e)}</div>`).join('')}</div>`;
     if(allAd.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Άδειες (${allAd.length})</div>${allAd.map(e=>`<div class="kinisi-entry">• ${fmt(e)}</div>`).join('')}</div>`;
-    if(allMe.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Μεταφορές (${allMe.length})</div>${allMe.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">${e.apo||'?'}→${e.pros||'?'}</span></div>`).join('')}</div>`;
+    if(allMe.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Μεταφορές (${allMe.length})</div>${allMe.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">(${e.apo||'?'}→${e.pros||'?'})</span></div>`).join('')}</div>`;
     html += `</div>`;
   }
 
-  // Per vagoni with kiniseis
+  // Per vagoni
   rows.forEach(r => {
     const d = r.simera!==null&&r.xthes!==null ? r.simera-r.xthes : null;
     const dc = d===null?"zero":d>0?"pos":d<0?"neg":"zero";
     const ds = d===null?"—":d>0?"+"+d:String(d);
-    const vAf = (r.afikseis||[]).map(fmt).filter(Boolean);
-    const vAp = (r.apoxwriseis||[]).map(fmt).filter(Boolean);
-    const vAd = (r.adeies||[]).map(fmt).filter(Boolean);
-    const vMe = (r.metafores||[]).map(e=>`${fmt(e)} (${e.apo||'?'}→${e.pros||'?'})`).filter(Boolean);
+    const vAf = (r.afikseis||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
+    const vAp = (r.apoxwriseis||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
+    const vAd = (r.adeies||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
+    const vMe = (r.metafores||[]).map(e=>`${e.epitheto||''} ${e.onoma||''} (${e.apo||'?'}→${e.pros||'?'})`).filter(Boolean);
     const hasK = vAf.length||vAp.length||vAd.length||vMe.length;
 
     html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:6px;overflow:hidden;">
