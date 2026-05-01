@@ -8,16 +8,12 @@
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   body{font-family:'DM Sans',system-ui,sans-serif;background:#F5F4F0;min-height:100vh;}
-  
-  /* PIN SCREEN */
   .pin-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;}
   .pin-screen h1{font-size:20px;font-weight:600;color:#1A1916;margin-bottom:0.5rem;text-align:center;}
   .pin-screen p{font-size:14px;color:#7A786E;margin-bottom:2rem;text-align:center;}
   .pin-input{font-family:'DM Sans',system-ui,sans-serif;font-size:28px;font-weight:600;letter-spacing:0.5em;text-align:center;width:160px;border:2px solid #C8C5BA;border-radius:12px;padding:12px 16px;outline:none;background:#fff;color:#1A1916;-webkit-text-security:disc;}
   .pin-input:focus{border-color:#2D6A4F;}
   .pin-error{font-size:13px;color:#C0392B;margin-top:0.75rem;font-weight:500;min-height:20px;text-align:center;}
-  
-  /* MAIN SCREEN */
   .main-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;}
   .main-screen h1{font-size:20px;font-weight:600;color:#1A1916;margin-bottom:0.5rem;text-align:center;}
   .main-screen p{font-size:14px;color:#7A786E;margin-bottom:2rem;text-align:center;}
@@ -40,21 +36,18 @@
   <h1>Αναφορά Κατασκήνωσης</h1>
   <p>Επίλεξε την κοινότητά σου</p>
   <div class="grid">
-    <a href="3d/">3Δ</a><a href="3m/">3Μ</a>
     <a href="4d/">4Δ</a><a href="4m/">4Μ</a>
+    <a href="3m/">3Μ</a><a href="3d/">3Δ</a>
     <a href="5aria/">5αρια</a><a href="6aria/">6αρια</a>
     <a href="dashboard/" class="dashboard-link">📊 Dashboard</a>
   </div>
 </div>
 
 <script>
-const CORRECT_PIN = "1234"; // ΑΛΛΑΞΕ ΤΟ PIN ΕΔΩ
+const CORRECT_PIN = "1234";
 
 function checkPin(val) {
-  if (val.length < 4) { 
-    document.getElementById("pin-error").textContent = ""; 
-    return; 
-  }
+  if (val.length < 4) { document.getElementById("pin-error").textContent = ""; return; }
   if (val === CORRECT_PIN) {
     sessionStorage.setItem("pin_ok", "1");
     document.getElementById("pin-screen").style.display = "none";
@@ -66,7 +59,6 @@ function checkPin(val) {
   }
 }
 
-// Check if already authenticated this session
 if (sessionStorage.getItem("pin_ok") === "1") {
   document.getElementById("pin-screen").style.display = "none";
   document.getElementById("main-screen").style.display = "flex";

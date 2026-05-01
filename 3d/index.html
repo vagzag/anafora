@@ -158,6 +158,7 @@ const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const CATS = ["Αφίξεις","Αποχωρήσεις","Άδειες","Μεταφορές"];
 
 let CONFIG_VAGONIA = [];
+let allVagonia = [];
 let state={}, openVagoni=null, activeTabs={}, saveTimer=null;
 
 const sbHeaders = {
@@ -187,9 +188,16 @@ async function init() {
   document.getElementById("date-sel").value = todayStr();
 
   // Load vagonia from Supabase config
+  let allVagonia = [];
   try {
-    const rows = await sbGet("/rest/v1/config?koinotita=eq." + encodeURIComponent(KOINOTITA) + "&select=vagonia");
-    if (rows && rows[0]) CONFIG_VAGONIA = rows[0].vagonia;
+    const allRows = await sbGet("/rest/v1/config?select=koinotita,vagonia&order=koinotita");
+    // Order: 4Δ, 4Μ, 3Μ, 3Δ, 5αρια, 6αρια
+    const ORDER = ["4Δ","4Μ","3Μ","3Δ","5αρια","6αρια"];
+    const byK = {};
+    if (allRows) allRows.forEach(r => { byK[r.koinotita] = r.vagonia; });
+    ORDER.forEach(k => { if (byK[k]) allVagonia = allVagonia.concat(byK[k]); });
+    // Current koinotita vagonia
+    if (byK[KOINOTITA]) CONFIG_VAGONIA = byK[KOINOTITA];
   } catch(e) {}
 
   // Fallback
@@ -303,7 +311,7 @@ function renderAll() {
 }
 
 function allVagoniaOpts() {
-  return CONFIG_VAGONIA.map(v => `<option value="${v}">${v}</option>`).join("");
+  return (allVagonia.length ? allVagonia : CONFIG_VAGONIA).map(v => `<option value="${v}">${v}</option>`).join("");
 }
 
 function makeCard(v) {
