@@ -222,7 +222,7 @@ async function loadDay() {
     if (rows && rows.length) {
       state = {vagonia: {}};
       rows.forEach(row => {
-        state.vagonia[row.vagoni] = {
+        state.vagonia[String(row.vagoni)] = {
           simera: row.simera !== null ? String(row.simera) : "",
           xthes: row.xthes !== null ? String(row.xthes) : "",
           kiniseis: {
@@ -235,7 +235,7 @@ async function loadDay() {
       });
       // Fill missing vagonia
       CONFIG_VAGONIA.forEach(v => {
-        if (!state.vagonia[v]) state.vagonia[v] = {simera:"", xthes:"", kiniseis:{"Αφίξεις":[],"Αποχωρήσεις":[],"Άδειες":[],"Μεταφορές":[]}};
+      if (!state.vagonia[String(v)]) state.vagonia[String(v)] = {simera:"", xthes:"", kiniseis:{"Αφίξεις":[],"Αποχωρήσεις":[],"Άδειες":[],"Μεταφορές":[]}};
       });
       renderAll(); updateSummary(); return;
     }
@@ -255,11 +255,11 @@ async function loadDay() {
   state = {vagonia: {}};
   CONFIG_VAGONIA.forEach(v => {
     const xthes = prevData[v] !== undefined ? String(prevData[v]) : "";
-    state.vagonia[v] = {simera:"", xthes, kiniseis:{"Αφίξεις":[],"Αποχωρήσεις":[],"Άδειες":[],"Μεταφορές":[]}};
+    state.vagonia[String(v)] = {simera:"", xthes, kiniseis:{"Αφίξεις":[],"Αποχωρήσεις":[],"Άδειες":[],"Μεταφορές":[]}};
   });
   CONFIG_VAGONIA.forEach(v => {
-    if (!state.vagonia[v]) state.vagonia[v] = {simera:"",xthes:"",kiniseis:{}};
-    CATS.forEach(c => { if(!state.vagonia[v].kiniseis[c]) state.vagonia[v].kiniseis[c] = []; });
+    if (!state.vagonia[String(v)]) state.vagonia[String(v)] = {simera:"",xthes:"",kiniseis:{}};
+    CATS.forEach(c => { if(!state.vagonia[String(v)].kiniseis[c]) state.vagonia[String(v)].kiniseis[c] = []; });
   });
   renderAll(); updateSummary();
 }
@@ -271,7 +271,7 @@ function autoSave() {
     const imerominia = document.getElementById("date-sel").value;
     localStorage.setItem("campF_"+KOINOTITA+"|"+imerominia, JSON.stringify(state));
     const rows = CONFIG_VAGONIA.map(v => {
-      const d = state.vagonia[v] || state.vagonia[String(v)] || {};
+      const d = state.vagonia[String(v)] || {};
       return {
         koinotita: KOINOTITA, imerominia,
         vagoni: parseInt(v),
@@ -306,7 +306,7 @@ function allVagoniaOpts() {
 }
 
 function makeCard(v) {
-  const d = state.vagonia[v] || {simera:"",xthes:"",kiniseis:{}};
+  const d = state.vagonia[String(v)] || {simera:"",xthes:"",kiniseis:{}};
   CATS.forEach(c => { if(!d.kiniseis[c]) d.kiniseis[c] = []; });
   const isOpen = openVagoni === v;
   const totalK = CATS.reduce((s,c) => s+(d.kiniseis[c]||[]).length, 0);
@@ -529,7 +529,7 @@ function toggleCard(v) {
 }
 
 function updateSimera(v, val) {
-  state.vagonia[v].simera = val;
+  state.vagonia[String(v)].simera = val;
   const badge = document.getElementById("diff-"+v);
   if (badge) { badge.textContent = diffText(val, state.vagonia[v].xthes); badge.className = "dbadge "+diffClass(val, state.vagonia[v].xthes); }
   updateDunamis(v);
@@ -679,7 +679,7 @@ function todayStr() { const d=new Date(); d.setHours(d.getHours()+3); return d.t
 function prevDateStr(d) { const dt=new Date(d); dt.setDate(dt.getDate()-1); return dt.toISOString().slice(0,10); }
 function formatDate(s) { const d=new Date(s); return `${d.getDate()}/${d.getMonth()+1}`; }
 function calcDunamis(v) {
-  const d = state.vagonia[v] || {};
+  const d = state.vagonia[String(v)] || {};
   const xthes = d.xthes !== "" && d.xthes !== undefined ? parseInt(d.xthes) : null;
   if (xthes === null) return null;
   const af = (d.kiniseis?.["Αφίξεις"] || []).length;
