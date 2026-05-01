@@ -27,6 +27,8 @@
   .save-pill.show{opacity:1;}
   .hist-btn{font-size:12px;font-weight:500;padding:4px 10px;border-radius:99px;border:1px solid var(--border-strong);background:transparent;color:var(--muted);cursor:pointer;}
   .hist-btn:active{background:var(--bg);}
+  .manual-save-btn{font-size:12px;font-weight:600;padding:4px 12px;border-radius:99px;border:none;background:var(--accent);color:#fff;cursor:pointer;}
+  .manual-save-btn:active{opacity:0.85;}
   .date-row input[type=date]{width:100%;font-family:var(--font);font-size:14px;font-weight:500;color:var(--text);background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--rs);padding:7px 10px;outline:none;-webkit-appearance:none;}
 
   /* SUMMARY */
@@ -122,6 +124,7 @@
     <h1>Αναφορά Κατασκήνωσης</h1>
     <div class="header-right">
       <button class="hist-btn" onclick="openHistory()">Ιστορικό</button>
+      <button class="manual-save-btn" onclick="manualSave()">Αποθήκευση</button>
       <span class="koin-badge" id="koin-label">—</span>
       <span class="save-pill" id="save-pill">✓</span>
     </div>
@@ -159,6 +162,7 @@ const CATS = ["Αφίξεις","Αποχωρήσεις","Άδειες","Μετα
 
 let CONFIG_VAGONIA = [];
 let allVagonia = [];
+let allVagoniaByK = {};
 let state={}, openVagoni=null, activeTabs={}, saveTimer=null;
 
 const sbHeaders = {
@@ -191,12 +195,11 @@ async function init() {
   let allVagonia = [];
   try {
     const allRows = await sbGet("/rest/v1/config?select=koinotita,vagonia&order=koinotita");
-    // Order: 4Δ, 4Μ, 3Μ, 3Δ, 5αρια, 6αρια
     const ORDER = ["4Δ","4Μ","3Μ","3Δ","5αρια","6αρια"];
     const byK = {};
     if (allRows) allRows.forEach(r => { byK[r.koinotita] = r.vagonia; });
+    allVagoniaByK = byK;
     ORDER.forEach(k => { if (byK[k]) allVagonia = allVagonia.concat(byK[k]); });
-    // Current koinotita vagonia
     if (byK[KOINOTITA]) CONFIG_VAGONIA = byK[KOINOTITA];
   } catch(e) {}
 
@@ -302,7 +305,31 @@ function autoSave() {
   }, 800);
 }
 
-// ── RENDER ─────────────────────────────────────────────────────────────────
+// ── MANUAL SAVE ────────────────────────────────────────────────────────────
+async function manualSave() {
+  clearTimeout(saveTimer);
+  const imerominia = document.getElementById("date-sel").value;
+  localStorage.setItem("campF_"+KOINOTITA+"|"+imerominia, JSON.stringify(state));
+  const rows = CONFIG_VAGONIA.map(v => {
+    const d = state.vagonia[String(v)] || {};
+    return {
+      koinotita: KOINOTITA, imerominia,
+      vagoni: parseInt(v),
+      simera: d.simera !== "" && d.simera !== undefined ? parseInt(d.simera) : null,
+      xthes: d.xthes !== "" && d.xthes !== undefined ? parseInt(d.xthes) : null,
+      afikseis: d.kiniseis?.["Αφίξεις"] || [],
+      apoxwriseis: d.kiniseis?.["Αποχωρήσεις"] || [],
+      adeies: d.kiniseis?.["Άδειες"] || [],
+      metafores: d.kiniseis?.["Μεταφορές"] || [],
+      updated_at: new Date().toISOString()
+    };
+  });
+  const rowsWithData = rows.filter(r => r.simera !== null || r.afikseis.length || r.apoxwriseis.length || r.adeies.length || r.metafores.length);
+  if (rowsWithData.length > 0) await sbUpsert("anafores", rowsWithData);
+  const pill = document.getElementById("save-pill");
+  pill.classList.add("show");
+  setTimeout(() => pill.classList.remove("show"), 1800);
+}
 function renderAll() {
   const cont = document.getElementById("vagonia-container");
   cont.innerHTML = "";
@@ -311,7 +338,15 @@ function renderAll() {
 }
 
 function allVagoniaOpts() {
-  return (allVagonia.length ? allVagonia : CONFIG_VAGONIA).map(v => `<option value="${v}">${v}</option>`).join("");
+  const ORDER = ["4Δ","4Μ","3Μ","3Δ","5αρια","6αρια"];
+  if (allVagoniaByK && Object.keys(allVagoniaByK).length) {
+    return ORDER.map(k => {
+      const vs = allVagoniaByK[k] || [];
+      if (!vs.length) return "";
+      return `<optgroup label="${k}">${vs.map(v=>`<option value="${v}">${v}</option>`).join("")}</optgroup>`;
+    }).join("");
+  }
+  return CONFIG_VAGONIA.map(v => `<option value="${v}">${v}</option>`).join("");
 }
 
 function makeCard(v) {
