@@ -169,15 +169,18 @@ async function loadAll(){
   const tDiff = hasXthes ? totSimera-totXthes : null;
   const tDiffStr = tDiff!==null ? (tDiff>0?"+"+tDiff:String(tDiff)) : "—";
   const dunIcon = hasDunamis ? (totDunamis===totSimera?'<span style="opacity:0.9"> ✓</span>':'<span style="opacity:0.9"> ⚠</span>') : '';
-  const kinStr = [totAf&&`Αφίξεις:${totAf}`, totAp&&`Αποχωρήσεις:${totAp}`, totAd&&`Άδειες:${totAd}`, totMe&&`Μεταφορές:${totMe}`].filter(Boolean).join('  ·  ');
-
-  tBar.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center;padding:1rem 1.25rem;">
+  tBar.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center;padding:1rem 1.25rem 0.5rem;">
     <div><div class="n">${hasXthes?totXthes:"—"}</div><div class="l">χθες</div></div>
     <div><div class="n">${hasDunamis?totDunamis:"—"}${dunIcon}</div><div class="l">δύναμη</div></div>
     <div><div class="n">${totSimera}</div><div class="l">σήμερα</div></div>
     <div><div class="n" style="font-size:20px;">${tDiffStr}</div><div class="l">διαφορά</div></div>
   </div>
-  ${kinStr?`<div style="text-align:center;padding:0 1rem 0.75rem;font-size:12px;opacity:0.85;">${kinStr}</div>`:''}`;
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;text-align:center;padding:0 1rem 0.875rem;">
+    <div><div style="font-size:16px;font-weight:600;">${totAf}</div><div style="font-size:10px;opacity:0.75;">Αφίξεις</div></div>
+    <div><div style="font-size:16px;font-weight:600;">${totAp}</div><div style="font-size:10px;opacity:0.75;">Αποχωρήσεις</div></div>
+    <div><div style="font-size:16px;font-weight:600;">${totAd}</div><div style="font-size:10px;opacity:0.75;">Άδειες</div></div>
+    <div><div style="font-size:16px;font-weight:600;">${totMe}</div><div style="font-size:10px;opacity:0.75;">Μεταφορές</div></div>
+  </div>`;
 
   // Cards
   cont.innerHTML = "";
