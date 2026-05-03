@@ -189,7 +189,7 @@ async function sbUpsert(table, rows) {
 async function init() {
   document.getElementById("koin-label").textContent = KOINOTITA;
   document.getElementById("hist-koin-label").textContent = KOINOTITA;
-  document.getElementById("date-sel").value = todayStr();
+  document.getElementById("date-sel").value = sessionStorage.getItem("selectedDate_"+KOINOTITA) || todayStr();
 
   // Load vagonia from Supabase config
   let allVagonia = [];
@@ -224,6 +224,7 @@ async function init() {
 async function loadDay() {
   const imerominia = document.getElementById("date-sel").value;
   if (!imerominia) return;
+  sessionStorage.setItem("selectedDate_"+KOINOTITA, imerominia);
   openVagoni = null;
 
   // Try Supabase
