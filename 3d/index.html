@@ -449,6 +449,10 @@ function renderBody(body, v) {
         <button class="del" data-v="${v}" data-cat="${activeTab}" data-i="${i}">×</button>
       </div>`;
     } else {
+      const isAdeia = activeTab === "Άδειες";
+      const adeiaLabel = isAdeia
+        ? `<span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;background:${item.type==="in"?"var(--accent-bg)":"var(--danger-bg)"};color:${item.type==="in"?"var(--accent)":"var(--danger)"};">${item.type==="in"?"επιστροφή":"σε άδεια"}</span>`
+        : "";
       return `<div class="krow">
         <div class="krow-names">
           <input class="kname" type="text" value="${esc(item.epitheto||"")}" placeholder="Επώνυμο"
@@ -456,6 +460,7 @@ function renderBody(body, v) {
           <input class="kname" type="text" value="${esc(item.onoma||"")}" placeholder="Όνομα"
             data-v="${v}" data-cat="${activeTab}" data-i="${i}" data-field="onoma">
         </div>
+        ${adeiaLabel}
         <button class="del" data-v="${v}" data-cat="${activeTab}" data-i="${i}">×</button>
       </div>`;
     }
