@@ -238,6 +238,7 @@ async function loadDay() {
         state.vagonia[String(row.vagoni)] = {
           simera: row.simera !== null ? String(row.simera) : "",
           xthes: row.xthes !== null ? String(row.xthes) : "",
+          existsInDB: true,
           kiniseis: {
             "Αφίξεις": row.afikseis || [],
             "Αποχωρήσεις": row.apoxwriseis || [],
@@ -294,11 +295,13 @@ function autoSave() {
         apoxwriseis: d.kiniseis?.["Αποχωρήσεις"] || [],
         adeies: d.kiniseis?.["Άδειες"] || [],
         metafores: d.kiniseis?.["Μεταφορές"] || [],
+        existsInDB: d.existsInDB || false,
         updated_at: new Date().toISOString()
       };
     });
-    // Only upsert rows that have data
-    const rowsWithData = rows.filter(r => r.simera !== null || r.afikseis.length || r.apoxwriseis.length || r.adeies.length || r.metafores.length);
+    // Στέλνουμε γραμμές που έχουν δεδομένα ή υπάρχουν ήδη στο Supabase (ώστε ένα clear να περάσει ως null)
+    const rowsWithData = rows.filter(r => r.simera !== null || r.afikseis.length || r.apoxwriseis.length || r.adeies.length || r.metafores.length || r.existsInDB);
+    rowsWithData.forEach(r => delete r.existsInDB);
     if (rowsWithData.length > 0) await sbUpsert("anafores", rowsWithData);
     const pill = document.getElementById("save-pill");
     pill.classList.add("show");
@@ -322,10 +325,12 @@ async function manualSave() {
       apoxwriseis: d.kiniseis?.["Αποχωρήσεις"] || [],
       adeies: d.kiniseis?.["Άδειες"] || [],
       metafores: d.kiniseis?.["Μεταφορές"] || [],
+      existsInDB: d.existsInDB || false,
       updated_at: new Date().toISOString()
     };
   });
-  const rowsWithData = rows.filter(r => r.simera !== null || r.afikseis.length || r.apoxwriseis.length || r.adeies.length || r.metafores.length);
+  const rowsWithData = rows.filter(r => r.simera !== null || r.afikseis.length || r.apoxwriseis.length || r.adeies.length || r.metafores.length || r.existsInDB);
+  rowsWithData.forEach(r => delete r.existsInDB);
   if (rowsWithData.length > 0) await sbUpsert("anafores", rowsWithData);
   const pill = document.getElementById("save-pill");
   pill.classList.add("show");
