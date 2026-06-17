@@ -21,7 +21,9 @@
   .header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.625rem;}
   .header-top h1{font-size:17px;font-weight:600;}
   .date-row{display:flex;gap:8px;align-items:center;}
-  .date-row input[type=date]{flex:1;font-family:var(--font);font-size:14px;font-weight:500;color:var(--text);background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--rs);padding:7px 10px;outline:none;-webkit-appearance:none;}
+  .date-row input[type=date]{flex:1;min-width:0;font-family:var(--font);font-size:14px;font-weight:500;color:var(--text);background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--rs);padding:7px 10px;outline:none;-webkit-appearance:none;}
+  .date-arrow{flex:0 0 auto;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:var(--muted);background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--rs);cursor:pointer;user-select:none;}
+  .date-arrow:active{background:var(--accent-bg);color:var(--accent);}
   .refresh-btn{font-family:var(--font);font-size:13px;padding:7px 14px;border-radius:var(--rs);border:1px solid var(--border-strong);background:var(--surface);color:var(--muted);cursor:pointer;}
   .refresh-btn:active{background:var(--bg);}
 
@@ -68,6 +70,8 @@
   </div>
   <div class="date-row">
     <input type="date" id="date-sel" onchange="loadAll()">
+    <span class="date-arrow" onclick="shiftDate(-1)">‹</span>
+    <span class="date-arrow" onclick="shiftDate(1)">›</span>
     <button class="refresh-btn" onclick="loadAll()">↻ Ανανέωση</button>
   </div>
 </div>
@@ -91,6 +95,12 @@ function todayStr(){
   return d.toISOString().slice(0,10); 
 }
 
+function prevDateStr(d) {
+  const dt = new Date(d);
+  dt.setDate(dt.getDate() - 1);
+  return dt.toISOString().slice(0,10);
+}
+
 function calcRowDunamis(row) {
   if (row.xthes === null) return null;
   const af = (row.afikseis||[]).length;
@@ -99,6 +109,14 @@ function calcRowDunamis(row) {
   const metaIn = (row.metafores||[]).filter(m=>String(m.pros)===v).length;
   const metaOut = (row.metafores||[]).filter(m=>String(m.apo)===v).length;
   return row.xthes + af - ap + metaIn - metaOut;
+}
+
+function shiftDate(delta) {
+  const sel = document.getElementById("date-sel");
+  const cur = new Date(sel.value);
+  cur.setDate(cur.getDate() + delta);
+  sel.value = cur.toISOString().slice(0, 10);
+  loadAll();
 }
 
 async function sbGet(path){
@@ -112,9 +130,19 @@ async function loadAll(){
   cont.innerHTML = '<div class="loading">Φόρτωση...</div>';
   openCard = null;
 
-  const rows = await sbGet(
-    `/rest/v1/anafores?imerominia=eq.${date}&select=*&order=koinotita,vagoni`
-  );
+  const prevDate = prevDateStr(date);
+  const [rows, prevRows] = await Promise.all([
+    sbGet(`/rest/v1/anafores?imerominia=eq.${date}&select=*&order=koinotita,vagoni`),
+    sbGet(`/rest/v1/anafores?imerominia=eq.${prevDate}&select=koinotita,vagoni,simera`)
+  ]);
+
+  // Live xthes lookup: koinotita|vagoni -> simera προηγούμενης μέρας
+  const prevMap = {};
+  (prevRows||[]).forEach(r => { prevMap[r.koinotita+"|"+r.vagoni] = r.simera; });
+  (rows||[]).forEach(r => {
+    const key = r.koinotita+"|"+r.vagoni;
+    r.xthes = prevMap[key] !== undefined ? prevMap[key] : null;
+  });
 
   const byK = {};
   KOINOTITES.forEach(k => byK[k] = []);
