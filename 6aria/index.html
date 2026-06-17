@@ -29,7 +29,10 @@
   .hist-btn:active{background:var(--bg);}
   .manual-save-btn{font-size:12px;font-weight:600;padding:4px 12px;border-radius:99px;border:none;background:var(--accent);color:#fff;cursor:pointer;}
   .manual-save-btn:active{opacity:0.85;}
-  .date-row input[type=date]{width:100%;font-family:var(--font);font-size:14px;font-weight:500;color:var(--text);background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--rs);padding:7px 10px;outline:none;-webkit-appearance:none;}
+  .date-row input[type=date]{flex:1;min-width:0;font-family:var(--font);font-size:14px;font-weight:500;color:var(--text);background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--rs);padding:7px 10px;outline:none;-webkit-appearance:none;}
+  .date-row{display:flex;gap:6px;align-items:center;}
+  .date-arrow{flex:0 0 auto;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:var(--muted);background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--rs);cursor:pointer;user-select:none;}
+  .date-arrow:active{background:var(--accent-bg);color:var(--accent);}
 
   /* SUMMARY */
   .summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0.875rem 1rem;}
@@ -131,6 +134,8 @@
   </div>
   <div class="date-row">
     <input type="date" id="date-sel" onchange="loadDay()">
+    <span class="date-arrow" onclick="shiftDate(-1)">‹</span>
+    <span class="date-arrow" onclick="shiftDate(1)">›</span>
   </div>
 </div>
 
@@ -221,6 +226,14 @@ async function init() {
 }
 
 // ── LOAD DAY ───────────────────────────────────────────────────────────────
+function shiftDate(delta) {
+  const sel = document.getElementById("date-sel");
+  const cur = new Date(sel.value);
+  cur.setDate(cur.getDate() + delta);
+  sel.value = cur.toISOString().slice(0, 10);
+  loadDay();
+}
+
 async function loadDay() {
   const imerominia = document.getElementById("date-sel").value;
   if (!imerominia) return;
