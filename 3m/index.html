@@ -13,6 +13,10 @@
     --accent:#2D6A4F;--accent-bg:#E8F4EE;
     --danger:#C0392B;--danger-bg:#FDEDEC;
     --rs:8px;--font:'DM Sans',system-ui,sans-serif;
+    --tab-af:#2D6A4F;--tab-af-bg:#E8F4EE;
+    --tab-ap:#C0392B;--tab-ap-bg:#FDEDEC;
+    --tab-ad:#B8860B;--tab-ad-bg:#FEF7E0;
+    --tab-me:#2563AC;--tab-me-bg:#E7F0FB;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   body{font-family:var(--font);color:var(--text);background:var(--bg);min-height:100vh;padding-bottom:3rem;}
@@ -62,12 +66,22 @@
   .vbody{border-top:1px solid var(--border);padding:0.875rem 1rem;display:none;}
   .vbody.open{display:block;}
 
-  /* TABS */
+  /* TABS — χρωματικός διαχωρισμός ανά κατηγορία */
   .tabs{display:flex;gap:5px;margin-bottom:0.875rem;flex-wrap:wrap;}
-  .tab{font-family:var(--font);font-size:12px;font-weight:500;padding:5px 12px;border-radius:99px;border:1px solid var(--border-strong);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:4px;}
-  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-  .tab .badge{font-size:10px;font-weight:600;border-radius:99px;padding:0 5px;min-width:16px;text-align:center;background:rgba(255,255,255,0.25);}
-  .tab:not(.active) .badge{background:var(--border);color:var(--muted);}
+  .tab{font-family:var(--font);font-size:12px;font-weight:600;padding:7px 14px;border-radius:99px;border:1.5px solid var(--border-strong);background:var(--surface);color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:4px;}
+  .tab.active[data-tab="Αφίξεις"]{background:var(--tab-af);color:#fff;border-color:var(--tab-af);}
+  .tab.active[data-tab="Αποχωρήσεις"]{background:var(--tab-ap);color:#fff;border-color:var(--tab-ap);}
+  .tab.active[data-tab="Άδειες"]{background:var(--tab-ad);color:#fff;border-color:var(--tab-ad);}
+  .tab.active[data-tab="Μεταφορές"]{background:var(--tab-me);color:#fff;border-color:var(--tab-me);}
+  .tab:not([data-tab="Αφίξεις"]):not(.active){color:var(--tab-af);}
+  .tab[data-tab="Αφίξεις"]:not(.active){color:var(--tab-af);border-color:var(--tab-af-bg);background:var(--tab-af-bg);}
+  .tab[data-tab="Αποχωρήσεις"]:not(.active){color:var(--tab-ap);border-color:var(--tab-ap-bg);background:var(--tab-ap-bg);}
+  .tab[data-tab="Άδειες"]:not(.active){color:var(--tab-ad);border-color:var(--tab-ad-bg);background:var(--tab-ad-bg);}
+  .tab[data-tab="Μεταφορές"]:not(.active){color:var(--tab-me);border-color:var(--tab-me-bg);background:var(--tab-me-bg);}
+  .tab .badge{font-size:10px;font-weight:600;border-radius:99px;padding:0 5px;min-width:16px;text-align:center;background:rgba(255,255,255,0.3);}
+  .tab:not(.active) .badge{background:rgba(0,0,0,0.08);}
+
+  .tab-placeholder{text-align:center;padding:2rem 1rem;color:var(--hint);font-size:13px;background:var(--bg);border-radius:var(--rs);border:1px dashed var(--border-strong);}
 
   /* NEW ENTRY */
   .new-area{background:var(--bg);border-radius:var(--rs);padding:10px;margin-bottom:10px;border:1px solid var(--border);}
@@ -221,7 +235,8 @@ async function init() {
     CONFIG_VAGONIA = FB[KOINOTITA] || [];
   }
 
-  CONFIG_VAGONIA.forEach(v => { if(!activeTabs[v]) activeTabs[v] = "Αφίξεις"; });
+  // Δεν προεπιλέγουμε tab — ο κοινοτάρχης πρέπει να διαλέξει συνειδητά
+  CONFIG_VAGONIA.forEach(v => { activeTabs[v] = null; });
   await loadDay();
 }
 
@@ -411,7 +426,7 @@ function makeCard(v) {
 
 function renderBody(body, v) {
   const d = state.vagonia[v];
-  const activeTab = activeTabs[v] || "Αφίξεις";
+  const activeTab = activeTabs[v] || null;
   const isMeta = activeTab === "Μεταφορές";
   const allOpts = allVagoniaOpts();
 
@@ -421,6 +436,21 @@ function renderBody(body, v) {
       ${c}${cnt>0?`<span class="badge">${cnt}</span>`:""}
     </button>`;
   }).join("");
+
+  // Αν δεν έχει επιλεγμένο tab ακόμα, δείχνουμε placeholder αντί για φόρμα
+  if (!activeTab) {
+    body.innerHTML = `
+      <div class="tabs">${tabsHtml}</div>
+      <div class="tab-placeholder">Επίλεξε κατηγορία παραπάνω για καταχώρηση</div>`;
+    body.querySelectorAll(".tab").forEach(btn => {
+      btn.addEventListener("click", e => {
+        e.stopPropagation();
+        activeTabs[parseInt(btn.dataset.v)] = btn.dataset.tab;
+        renderBody(body, parseInt(btn.dataset.v));
+      });
+    });
+    return;
+  }
 
   let newHtml = "";
   if (isMeta) {
@@ -516,7 +546,7 @@ function renderBody(body, v) {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener("keydown", function(e) {
-        if (e.key==="Enter") { e.preventDefault(); e.stopPropagation(); doAdd(v, activeTabs[v]||"Αφίξεις", body); }
+        if (e.key==="Enter") { e.preventDefault(); e.stopPropagation(); doAdd(v, activeTabs[v], body); }
       });
       el.addEventListener("click", e => e.stopPropagation());
     }

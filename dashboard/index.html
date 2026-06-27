@@ -136,7 +136,6 @@ async function loadAll(){
     sbGet(`/rest/v1/anafores?imerominia=eq.${prevDate}&select=koinotita,vagoni,simera`)
   ]);
 
-  // Live xthes lookup: koinotita|vagoni -> simera προηγούμενης μέρας
   const prevMap = {};
   (prevRows||[]).forEach(r => { prevMap[r.koinotita+"|"+r.vagoni] = r.simera; });
   (rows||[]).forEach(r => {
@@ -270,27 +269,29 @@ function toggleKCard(k, wrap, rows, allAf, allAp, allAd, allMe){
     return;
   }
 
-  // fmt: "Επώνυμο Όνομα - βαγόνι"
   const fmt = e=>`${e.epitheto||''} ${e.onoma||''}`.trim() + ` - ${e.vagoni}`;
+  const fmtAdeia = e=>`${e.epitheto||''} ${e.onoma||''}`.trim() + ` - ${e.vagoni} - ${e.type==="in"?"επιστροφή":"σε άδεια"}`;
 
   let html = '';
   if(allAf.length||allAp.length||allAd.length||allMe.length) {
     html += `<div style="background:var(--bg);border-radius:var(--rs);padding:10px;margin-bottom:10px;border:1px solid var(--border);">`;
     if(allAf.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Αφίξεις (${allAf.length})</div>${allAf.map(e=>`<div class="kinisi-entry">• ${fmt(e)}</div>`).join('')}</div>`;
     if(allAp.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Αποχωρήσεις (${allAp.length})</div>${allAp.map(e=>`<div class="kinisi-entry">• ${fmt(e)}</div>`).join('')}</div>`;
-    if(allAd.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Άδειες (${allAd.length})</div>${allAd.map(e=>`<div class="kinisi-entry">• ${fmt(e)}</div>`).join('')}</div>`;
+    if(allAd.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Άδειες (${allAd.length})</div>${allAd.map(e=>`<div class="kinisi-entry">• ${fmtAdeia(e)}</div>`).join('')}</div>`;
     if(allMe.length) html+=`<div class="kinisi-group"><div class="kinisi-title">Μεταφορές (${allMe.length})</div>${allMe.map(e=>`<div class="kinisi-entry">• ${fmt(e)} <span style="color:var(--muted);font-size:11px;">(${e.apo||'?'}→${e.pros||'?'})</span></div>`).join('')}</div>`;
     html += `</div>`;
   }
 
-  // Per vagoni
   rows.forEach(r => {
     const d = r.simera!==null&&r.xthes!==null ? r.simera-r.xthes : null;
     const dc = d===null?"zero":d>0?"pos":d<0?"neg":"zero";
     const ds = d===null?"—":d>0?"+"+d:String(d);
     const vAf = (r.afikseis||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
     const vAp = (r.apoxwriseis||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
-    const vAd = (r.adeies||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
+    const vAd = (r.adeies||[]).map(e=>{
+      const name = `${e.epitheto||''} ${e.onoma||''}`.trim();
+      return name ? `${name} - ${e.type==="in"?"επιστροφή":"σε άδεια"}` : "";
+    }).filter(Boolean);
     const vMe = (r.metafores||[]).map(e=>`${e.epitheto||''} ${e.onoma||''} (${e.apo||'?'}→${e.pros||'?'})`).filter(Boolean);
     const hasK = vAf.length||vAp.length||vAd.length||vMe.length;
 
