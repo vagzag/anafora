@@ -757,7 +757,7 @@ async function loadHistoryDate(imerominia) {
   // Kiniseis summary
   if (allAfikseis.length) html += `<div style="margin-top:6px;"><div class="hist-section-title">Αφίξεις (${allAfikseis.length})</div>${allAfikseis.map(e=>`<div class="hist-entry">• ${e.epitheto||''} ${e.onoma||''} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
   if (allApox.length) html += `<div style="margin-top:6px;"><div class="hist-section-title">Αποχωρήσεις (${allApox.length})</div>${allApox.map(e=>`<div class="hist-entry">• ${e.epitheto||''} ${e.onoma||''} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
-  if (allAdeies.length) html += `<div style="margin-top:6px;"><div class="hist-section-title">Άδειες (${allAdeies.length})</div>${allAdeies.map(e=>`<div class="hist-entry">• ${e.epitheto||''} ${e.onoma||''} <span style="color:var(--muted);font-size:11px;">(${e.vagoni})</span></div>`).join('')}</div>`;
+  if (allAdeies.length) html += `<div style="margin-top:6px;"><div class="hist-section-title">Άδειες (${allAdeies.length})</div>${allAdeies.map(e=>`<div class="hist-entry">• ${e.epitheto||''} ${e.onoma||''} <span style="color:var(--muted);font-size:11px;">(${e.vagoni}) - ${e.type==="in"?"επιστροφή":"σε άδεια"}</span></div>`).join('')}</div>`;
   if (allMeta.length) html += `<div style="margin-top:6px;"><div class="hist-section-title">Μεταφορές (${allMeta.length})</div>${allMeta.map(e=>`<div class="hist-entry">• ${e.epitheto||''} ${e.onoma||''} <span style="color:var(--muted);font-size:11px;">${e.apo||'?'}→${e.pros||'?'}</span></div>`).join('')}</div>`;
   html += `</div>`;
 
@@ -765,7 +765,10 @@ async function loadHistoryDate(imerominia) {
   rows.forEach(row => {
     const afikseis = (row.afikseis||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
     const apox = (row.apoxwriseis||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
-    const adeies = (row.adeies||[]).map(e=>`${e.epitheto||''} ${e.onoma||''}`.trim()).filter(Boolean);
+    const adeies = (row.adeies||[]).map(e=>{
+      const name = `${e.epitheto||''} ${e.onoma||''}`.trim();
+      return name ? `${name} - ${e.type==="in"?"επιστροφή":"σε άδεια"}` : "";
+    }).filter(Boolean);
     const meta = (row.metafores||[]).map(e=>`${e.epitheto||''} ${e.onoma||''} (${e.apo||'?'}→${e.pros||'?'})`.trim()).filter(Boolean);
     const hasK = afikseis.length||apox.length||adeies.length||meta.length;
 
